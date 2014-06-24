@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>6.2</ProjectVersion>
+    <ToolchainName>com.Atmel.AVRGCC8.CPP</ToolchainName>
+    <ProjectGuid>{530af8b9-1bfa-499c-87bd-253c9437bf4e}</ProjectGuid>
+    <avrdevice>ATmega328P</avrdevice>
+    <avrdeviceseries>none</avrdeviceseries>
+    <OutputType>StaticLibrary</OutputType>
+    <Language>CPP</Language>
+    <OutputFileName>lib$(MSBuildProjectName)</OutputFileName>
+    <OutputFileExtension>.a</OutputFileExtension>
+    <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
+    <AvrGccProjectExtensions>
+    </AvrGccProjectExtensions>
+    <AssemblyName>ArduinoCoreLib</AssemblyName>
+    <Name>ArduinoCoreLib</Name>
+    <RootNamespace>ArduinoCoreLib</RootNamespace>
+    <ToolchainFlavour>Native</ToolchainFlavour>
+    <KeepTimersRunning>true</KeepTimersRunning>
+    <OverrideVtor>false</OverrideVtor>
+    <CacheFlash>true</CacheFlash>
+    <ProgFlashFromRam>true</ProgFlashFromRam>
+    <RamSnippetAddress />
+    <UncachedRange />
+    <OverrideVtorValue />
+    <BootSegment>2</BootSegment>
+    <eraseonlaunchrule>1</eraseonlaunchrule>
+    <AsfFrameworkConfig>
+      <framework-data xmlns="">
+        <options />
+        <configurations />
+        <files />
+        <documentation help="" />
+        <offline-documentation help="" />
+        <dependencies>
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.17.0" />
+        </dependencies>
+      </framework-data>
+    </AsfFrameworkConfig>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <ToolchainSettings>
+    </ToolchainSettings>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <ToolchainSettings>
+      <AvrGccCpp>
+  <avrgcc.common.outputfiles.hex>True</avrgcc.common.outputfiles.hex>
+  <avrgcc.common.outputfiles.lss>True</avrgcc.common.outputfiles.lss>
+  <avrgcc.common.outputfiles.eep>True</avrgcc.common.outputfiles.eep>
+  <avrgcc.common.outputfiles.srec>True</avrgcc.common.outputfiles.srec>
+  <avrgcc.common.outputfiles.usersignatures>False</avrgcc.common.outputfiles.usersignatures>
+  <avrgcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>F_CPU=16000000L</Value>
+    </ListValues>
+  </avrgcc.compiler.symbols.DefSymbols>
+  <avrgcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>../../../../../src/core/variants/eightanaloginputs</Value>
+      <Value>../../../../../src/core</Value>
+      <Value>../../../../../src/core/variants/standard</Value>
+      <Value>../Core</Value>
+    </ListValues>
+  </avrgcc.compiler.directories.IncludePaths>
+  <avrgcccpp.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>F_CPU=16000000L</Value>
+    </ListValues>
+  </avrgcccpp.compiler.symbols.DefSymbols>
+  <avrgcccpp.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>../../../../../src/core/variants/eightanaloginputs</Value>
+      <Value>../../../../../src/core</Value>
+      <Value>../../../../../src/core/variants/standard</Value>
+      <Value>../Core</Value>
+    </ListValues>
+  </avrgcccpp.compiler.directories.IncludePaths>
+</AvrGccCpp>
+    </ToolchainSettings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../../Src/Core/Arduino.h">
+      <SubType>compile</SubType>
+      <Link>Arduino.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/binary.h">
+      <SubType>compile</SubType>
+      <Link>binary.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/CDC.cpp">
+      <SubType>compile</SubType>
+      <Link>CDC.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Client.h">
+      <SubType>compile</SubType>
+      <Link>Client.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/HardwareSerial.cpp">
+      <SubType>compile</SubType>
+      <Link>HardwareSerial.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/HardwareSerial.h">
+      <SubType>compile</SubType>
+      <Link>HardwareSerial.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/HID.cpp">
+      <SubType>compile</SubType>
+      <Link>HID.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/IPAddress.cpp">
+      <SubType>compile</SubType>
+      <Link>IPAddress.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/IPAddress.h">
+      <SubType>compile</SubType>
+      <Link>IPAddress.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/new.cpp">
+      <SubType>compile</SubType>
+      <Link>new.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/new.h">
+      <SubType>compile</SubType>
+      <Link>new.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Platform.h">
+      <SubType>compile</SubType>
+      <Link>Platform.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Print.cpp">
+      <SubType>compile</SubType>
+      <Link>Print.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Print.h">
+      <SubType>compile</SubType>
+      <Link>Print.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Printable.h">
+      <SubType>compile</SubType>
+      <Link>Printable.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Server.h">
+      <SubType>compile</SubType>
+      <Link>Server.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Stream.cpp">
+      <SubType>compile</SubType>
+      <Link>Stream.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Stream.h">
+      <SubType>compile</SubType>
+      <Link>Stream.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Tone.cpp">
+      <SubType>compile</SubType>
+      <Link>Tone.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/Udp.h">
+      <SubType>compile</SubType>
+      <Link>Udp.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/USBAPI.h">
+      <SubType>compile</SubType>
+      <Link>USBAPI.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/USBCore.cpp">
+      <SubType>compile</SubType>
+      <Link>USBCore.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/USBCore.h">
+      <SubType>compile</SubType>
+      <Link>USBCore.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/USBDesc.h">
+      <SubType>compile</SubType>
+      <Link>USBDesc.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/WCharacter.h">
+      <SubType>compile</SubType>
+      <Link>WCharacter.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/WInterrupts.c">
+      <SubType>compile</SubType>
+      <Link>WInterrupts.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring.c">
+      <SubType>compile</SubType>
+      <Link>wiring.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring_analog.c">
+      <SubType>compile</SubType>
+      <Link>wiring_analog.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring_digital.c">
+      <SubType>compile</SubType>
+      <Link>wiring_digital.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring_private.h">
+      <SubType>compile</SubType>
+      <Link>wiring_private.h</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring_pulse.c">
+      <SubType>compile</SubType>
+      <Link>wiring_pulse.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/wiring_shift.c">
+      <SubType>compile</SubType>
+      <Link>wiring_shift.c</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/WMath.cpp">
+      <SubType>compile</SubType>
+      <Link>WMath.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/WString.cpp">
+      <SubType>compile</SubType>
+      <Link>WString.cpp</Link>
+    </Compile>
+    <Compile Include="../../../../Src/Core/WString.h">
+      <SubType>compile</SubType>
+      <Link>WString.h</Link>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
+</Project>
