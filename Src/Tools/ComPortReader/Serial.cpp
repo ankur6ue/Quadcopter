@@ -43,7 +43,7 @@ Serial::Serial(char *portName)
 		else
 		{
 			//Define serial connection parameters for the arduino board
-			dcbSerialParams.BaudRate=CBR_9600;
+			dcbSerialParams.BaudRate=CBR_115200;
 			dcbSerialParams.ByteSize=8;
 			dcbSerialParams.StopBits=ONESTOPBIT;
 			dcbSerialParams.Parity=NOPARITY;
@@ -77,7 +77,7 @@ Serial::~Serial()
 	}
 }
 
-int Serial::ReadData(char *buffer, unsigned int nbChar)
+int Serial::ReadData(char *buffer, unsigned int& nbChar)
 {
 	//Number of bytes we'll have read
 	DWORD bytesRead;
