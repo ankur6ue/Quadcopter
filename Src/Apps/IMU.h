@@ -50,10 +50,17 @@ class IMU
   IMU();
   void Init();
   bool DMPInit();
+  void CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
+  		int& gyOffset, int& gzOffset, int& aXOffset, int& aYOffset,
+  		int& aZOffset);
   bool processAngles(float angles[],float rates[] );
   bool GetMotion6(float angles[]);
+  bool IntegrateGyro();
   bool GetYPR(float& yaw, float& pitch, float& roll);
-
+  int gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
+  float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
+  float GYRO_FACTOR;
+  float RADIANS_TO_DEGREES;
   private:
 
 	//Kalman kalmanX; // Create the Kalman instances
@@ -66,6 +73,7 @@ class IMU
 	float		YPR[3];
 	VectorFloat	Gravity;
 	Quaternion 	Q;
+	unsigned long Before;
 
 	int		PacketSize;
 	bool 	DMPReady;

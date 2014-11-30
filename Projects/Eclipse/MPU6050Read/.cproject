@@ -52,6 +52,7 @@
 									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\libraries\Wire&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\cores\arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\variants\standard&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Tools\MPU6050&quot;"/>
 								</option>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.shortenums.1085636883" name="Short enums (-fshort-enums)" superClass="de.innot.avreclipse.cppcompiler.option.optimize.shortenums" value="false" valueType="boolean"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.packstruct.1137957649" name="Pack structs (-fpack-struct)" superClass="de.innot.avreclipse.cppcompiler.option.optimize.packstruct" value="false" valueType="boolean"/>

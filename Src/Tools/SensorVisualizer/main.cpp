@@ -28,7 +28,7 @@ Serial* SetupI2C()
 {
 	printf("Welcome to the serial test app!\n\n");
 
-	Serial* SP = new Serial("\\\\.\\COM13");    // adjust as needed
+	Serial* SP = new Serial("\\\\.\\COM16");    // adjust as needed
 
 	if (SP->IsConnected())
 		printf("We're connected");

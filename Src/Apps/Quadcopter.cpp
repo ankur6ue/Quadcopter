@@ -43,7 +43,7 @@ void setup()
 
     ////////////////// MPU Initialization ////////////////
     Imu.Init();
-    Imu.DMPInit();
+  //  Imu.DMPInit();
     Motors.Init();
     StartupTime = millis();
 
@@ -63,6 +63,9 @@ void loop()
 	float angles[6];
 	float yaw, pitch, roll;
 	char currentChar = 0;
+
+	Imu.GetMotion6(angles);
+	PrintData(angles, 6);
 	if(Serial.available())
 	{
 		char currentChar = Serial.read();
@@ -82,7 +85,6 @@ void loop()
 		{
 			Speed = 55;
 		}
-
 	}
 
 	int sensorPin0 	= A0;
@@ -107,12 +109,12 @@ void loop()
 		float angles[6];
 	//	Imu.GetMotion6(angles);
 	//	PrintData(angles, 6);
-		Serial.print("\nypr\t");
-		Serial.print(yaw * 180/M_PI);
-		Serial.print(" ");
-		Serial.print(pitch * 180/M_PI);
-		Serial.print(" ");
-		Serial.println(roll * 180/M_PI);
+//		Serial.print("\nypr\t");
+//		Serial.print(yaw * 180/M_PI);
+//		Serial.print(" ");
+//		Serial.print(pitch * 180/M_PI);
+//		Serial.print(" ");
+//		Serial.println(roll * 180/M_PI);
 		double ki = 0.1; double kd = 0; double kp = 1;
 		if (now - StartupTime > 2000 && !IsPIDSetup)
 		{
@@ -141,12 +143,12 @@ void loop()
 				Motors.Run(BR, Speed + RollPIDOutput + PitchPIDOutput /*- YawPIDOutput*/);
 				Motors.Run(FL, Speed - RollPIDOutput - PitchPIDOutput /*- YawPIDOutput*/);
 			}
-			Serial.print("\n Kp = ");
-			Serial.print(kp);
-			Serial.print("\n Roll Cntrl Output = ");
-			Serial.print(RollPIDOutput);
-			Serial.print("\n sensorValue Output = ");
-			Serial.print(sensorValue1);
+//			Serial.print("\n Kp = ");
+//			Serial.print(kp);
+//			Serial.print("\n Roll Cntrl Output = ");
+//			Serial.print(RollPIDOutput);
+//			Serial.print("\n sensorValue Output = ");
+//			Serial.print(sensorValue1);
 
 		}
 	}

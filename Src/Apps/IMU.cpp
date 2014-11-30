@@ -29,6 +29,64 @@ IMU::IMU()
 {  
 	MPUInterrupt = false;
 	accelgyro = new MPU6050();
+	RADIANS_TO_DEGREES = 180/M_PI;
+}
+
+void PrintMotion6Data(int ax, int ay, int az, int gx, int gy, int gz)
+{
+	Serial.print(ax); Serial.print(" "); Serial.print(ay); Serial.print(" "); Serial.print(az);
+	Serial.print(gx); Serial.print(" "); Serial.print(gy); Serial.print(" "); Serial.print(gz);
+	Serial.print("\n");
+}
+
+void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
+		int& gYOffset, int& gZOffset, int& aXOffset, int& aYOffset,
+		int& aZOffset)
+{
+	int numReadings = 0;
+	long base_x_gyro = 0;
+	long base_y_gyro = 0;
+	long base_z_gyro = 0;
+	long base_x_accel = 0;
+	long base_y_accel = 0;
+	long base_z_accel = 0;
+
+	int16_t ax, ay, az, gx, gy, gz;
+
+	delay(100);
+	// Discard the first few reading
+	unsigned long before = millis();
+	unsigned long now;
+	do
+	{
+		accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+		now = millis();
+	}
+	while(now - before < 1000/(gyroSamplingRate+1)); // ignore 1000 frames of data
+
+	before = millis();
+
+	do
+	{
+		accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+	//	PrintMotion6Data(ax, ay, az, gx, gy, gz);
+		base_x_gyro += gx;
+		base_y_gyro += gy;
+		base_z_gyro += gz;
+		base_x_accel += ax;
+		base_y_accel += ay;
+		base_z_accel += az;
+		numReadings++;
+		now = millis();
+	}
+	while(now - before < 1000/(gyroSamplingRate+1)); // collect average over 1000 frames of data
+	base_x_gyro /= numReadings; 	gXOffset = base_x_gyro;
+	base_y_gyro /= numReadings;		gYOffset = base_y_gyro;
+	base_z_gyro /= numReadings;		gZOffset = base_z_gyro;
+	base_x_accel /= numReadings;	aXOffset = base_x_accel;
+	base_y_accel /= numReadings;	aYOffset = base_y_accel;
+	base_z_accel /= numReadings;	aZOffset = base_z_accel;
+
 }
 
 void IMU::Init()
@@ -38,13 +96,18 @@ void IMU::Init()
 	accelgyro->initialize();
 
 	//-885	-2964	1254	-4	-45	-34
-
-	accelgyro->setXAccelOffset(-885);
-	accelgyro->setYAccelOffset(-2964);
-	accelgyro->setZAccelOffset(1254);
-	accelgyro->setXGyroOffset(-4);
-	accelgyro->setYGyroOffset(-45);
-	accelgyro->setZGyroOffset(-34);
+	accelgyro->setDLPFMode(3);  //Set Low Pass filter
+	uint8_t gyroSampleRate = accelgyro->getRate(); // according to the doc, accelerometer sample rate is always 1KHz.
+	Serial.println("gyro sample rate = "); Serial.print(gyroSampleRate); Serial.print("\n");
+	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
+	Serial.print("Offsets are: (gyro, accel) ");
+	PrintMotion6Data(gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
+//	accelgyro->setXAccelOffset(-885);
+//	accelgyro->setYAccelOffset(-2964);
+//	accelgyro->setZAccelOffset(1254);
+//	accelgyro->setXGyroOffset(gXOffset);
+//	accelgyro->setYGyroOffset(gYOffset);
+//	accelgyro->setZGyroOffset(gZOffset);
 
 	// Check connection
 	Serial.println("Testing device connections...");
@@ -92,6 +155,70 @@ void IMU::Init()
 	gyroZoffset = sZ/n;
 
 	j=0;
+}
+
+bool IMU::IntegrateGyro()
+{
+	  // Set the full scale range of the gyro
+	        uint8_t FS_SEL = 0;
+	        accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
+
+	        //mpu.setFullScaleGyroRange(FS_SEL);
+
+	        // get default full scale value of gyro - may have changed from default
+	        // function call returns values between 0 and 3
+	        uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
+	        Serial.print("FS_SEL = ");
+	        Serial.println(READ_FS_SEL);
+	        GYRO_FACTOR = 131.0/(FS_SEL + 1);
+
+
+	        // get default full scale value of accelerometer - may not be default value.
+	        // Accelerometer scale factor doesn't reall matter as it divides out
+	        uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
+	        Serial.print("AFS_SEL = ");
+	        Serial.println(READ_AFS_SEL);
+	        //ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
+
+
+	        // Remove offsets and scale gyro data
+	        gyroX = (gyroX - gXOffset)/GYRO_FACTOR;
+	        gyroY = (gyroY - gYOffset)/GYRO_FACTOR;
+	        gyroZ = (gyroZ - gZOffset)/GYRO_FACTOR;
+	        accX = accX; // - base_x_accel;
+	        accY = accY; // - base_y_accel;
+	        accZ = accZ; // - base_z_accel;
+
+	        const double Q_angle = 0.001;
+
+	        const double Q_gyroBias = 0.003;
+
+	        const double R_angle = 0.03;
+
+	        float accelAngleY = atan(-accX/accZ)*RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	        float accelAngleX = atan(accY/accZ)*RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	        float accelAngleZ = 0;
+	        unsigned long now = millis();
+	        // Compute the (filtered) gyro angles
+	        float dt =(now - Before)/1000.0;
+	        float gyroAngleX = gyroX*dt + fLastGyroAngleX;
+	        float gyroAngleY = gyroY*dt + fLastGyroAngleY;
+	        float gyroAngleZ = gyroZ*dt + fLastGyroAngleZ;
+
+	        // Compute the drifting gyro angles
+	        float unfilteredGyroAngleX = gyroX*dt + fLastGyroAngleX;
+	        float unfilteredGyroAngleY = gyroY*dt + fLastGyroAngleY;
+	        float unfilteredGyroAngleZ = gyroZ*dt + fLastGyroAngleZ;
+
+	        // Apply the complementary filter to figure out the change in angle - choice of alpha is
+	        // estimated now.  Alpha depends on the sampling rate...
+	        const float alpha = 0.96;
+	        float angleX = alpha*gyroAngleX + (1.0 - alpha)*accelAngleX;
+	        float angleY = alpha*gyroAngleY + (1.0 - alpha)*accelAngleY;
+	        float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
+	        fLastGyroAngleX = angleX; fLastGyroAngleY = angleY; fLastGyroAngleZ = angleZ;
+	        Before = now;
+	        return true;
 }
 
 bool IMU::DMPInit()
