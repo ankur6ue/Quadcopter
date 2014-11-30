@@ -1,0 +1,48 @@
+#include <qwt_plot.h>
+#include <qwt_interval.h>
+#include <qwt_system_clock.h>
+#include "plotiddef.h"
+#include <qlist.h>
+
+class QwtPlotCurve;
+class QwtPlotMarker;
+class QwtPlotDirectPainter;
+class CurveDrawData;
+
+class Plot: public QwtPlot
+{
+    Q_OBJECT
+
+public:
+    Plot( QWidget * = NULL, PlotId pid = yaw );
+    virtual ~Plot();
+
+    void start();
+    virtual void replot();
+
+    virtual bool eventFilter( QObject *, QEvent * );
+	PlotId ePlotId;
+
+public Q_SLOTS:
+    void setIntervalLength( double );
+
+protected:
+    virtual void showEvent( QShowEvent * );
+    virtual void resizeEvent( QResizeEvent * );
+    virtual void timerEvent( QTimerEvent * );
+
+private:
+    void updateCurve();
+    void incrementInterval();
+	void updateCurve(CurveDrawData* pcurveDrawData);
+    void incrementInterval(CurveDrawData* pcurveDrawData);
+	void replot(CurveDrawData* pcurveDrawData);
+
+    QwtPlotMarker *d_origin;
+	QList<CurveDrawData*> CurveDrawDataList;
+ 
+    QwtInterval d_interval;
+    int d_timerId;
+
+    QwtSystemClock d_clock;
+};
