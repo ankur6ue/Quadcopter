@@ -129,9 +129,15 @@ Plot::Plot( QWidget *parent, PlotId pid ):
 		QwtPlotCurve* d_curve1 = curveDrawData->pPlotCurve;
 		d_curve1->setStyle( QwtPlotCurve::Lines );
 		if (i == 0)
+		{
 			d_curve1->setPen( canvas()->palette().color(QPalette::Light ) );
+			d_curve1->setTitle("MPU");
+		}
 		if (i == 1)
+		{
 			d_curve1->setPen( canvas()->palette().color(QPalette::WindowText) );
+			d_curve1->setTitle("Sensor Fusion");
+		}
 		d_curve1->setRenderHint( QwtPlotItem::RenderAntialiased, true );
 		d_curve1->setPaintAttribute( QwtPlotCurve::ClipPolygons, false );
 		d_curve1->setData( new CurveData(pid, (CurveId)i) );

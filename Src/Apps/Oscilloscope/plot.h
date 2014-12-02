@@ -3,6 +3,7 @@
 #include <qwt_system_clock.h>
 #include "plotiddef.h"
 #include <qlist.h>
+#include <qwt_legend.h>
 
 class QwtPlotCurve;
 class QwtPlotMarker;
@@ -43,6 +44,5 @@ private:
  
     QwtInterval d_interval;
     int d_timerId;
-
     QwtSystemClock d_clock;
 };

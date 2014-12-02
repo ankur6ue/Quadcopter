@@ -12,22 +12,29 @@ MainWindow::MainWindow( QWidget *parent ):
     const double intervalLength = 10.0; // seconds
 	d_amplitude = 150;
     y_plot = new Plot( this, yaw );
+	QwtLegend* plegend = new QwtLegend();
+	plegend->setWindowTitle("Legend");
+	y_plot->insertLegend(plegend);
+
     y_plot->setIntervalLength( intervalLength );
 	y_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	y_plot->setMaximumSize(600, 200);
+	y_plot->setMaximumSize(600, 300);
 	y_plot->setAxisScale( QwtPlot::yLeft, -d_amplitude, d_amplitude);
+	y_plot->setTitle("Yaw");
 
 	p_plot = new Plot( this, pitch );
     p_plot->setIntervalLength( intervalLength );
 	p_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	p_plot->setMaximumSize(600, 200);
+	p_plot->setMaximumSize(600, 300);
 	p_plot->setAxisScale( QwtPlot::yLeft, -d_amplitude, d_amplitude);
+	p_plot->setTitle("Pitch");
 
 	r_plot = new Plot( this, roll );
     r_plot->setIntervalLength( intervalLength );
 	r_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	r_plot->setMaximumSize(600, 200);
+	r_plot->setMaximumSize(600, 300);
 	r_plot->setAxisScale( QwtPlot::yLeft, -d_amplitude, d_amplitude);
+	r_plot->setTitle("Roll");
 
     d_amplitudeKnob = new Knob( "Amplitude", 0.0, 200.0, this );
     d_amplitudeKnob->setValue( 150.0 );

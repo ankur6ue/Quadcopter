@@ -54,9 +54,7 @@ THE SOFTWARE.
     #include "Wire.h"
 #endif
 
-void CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
-	int& gyOffset, int& gzOffset, int& aXOffset, int& aYOffset,
-	int& aZOffset);
+void CalculateOffsets(uint8_t gyroSamplingRate);
 bool processAngles(float angles[],float rates[] );
 bool GetMotion6(float angles[]);
 bool GetIntegratedMotion6(float angles[]);
@@ -236,7 +234,7 @@ void setup() {
         Serial.print(devStatus);
         Serial.println(F(")"));
     }
-	
+    CalculateOffsets(0);
     // configure LED for output
     pinMode(LED_PIN, OUTPUT);
 }
@@ -325,11 +323,11 @@ void loop() {
             Serial.print("\t");
             Serial.print(ypr[2] * 180/M_PI);
             Serial.print("fusion");
-            Serial.print(angles[0]);
+            Serial.print(angles[3]);
 			Serial.print("\t");
-			Serial.print(angles[1]);
+			Serial.print(angles[4]);
 			Serial.print("\t");
-			Serial.print(angles[2]);
+			Serial.print(angles[5]);
         #endif
 
         #ifdef OUTPUT_READABLE_REALACCEL
