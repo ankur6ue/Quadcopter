@@ -1,29 +1,10 @@
 #include <qwt_sampling_thread.h>
 #include "Serial.h"
 #include <io.h>
+#include "runningaverage.h"
+#include "echocommanddef.h"
 
-class RunningAverage
-{
-public:
-	int iDataSize;
-	float fSum;
-	float fAverage;
-
-	RunningAverage()
-	{
-		fSum = 0; fAverage = 0; iDataSize = 0;
-	}
-
-	void Accum(float newData)
-	{
-		fSum += newData;
-		iDataSize++;
-	}
-	float GetAvg()
-	{
-		return fSum/iDataSize;
-	}
-};
+class SensorDataParser;
 
 class SamplingThread: public QwtSamplingThread
 {
@@ -31,10 +12,13 @@ class SamplingThread: public QwtSamplingThread
 
 public:
     SamplingThread( QObject *parent = NULL );
-	bool GetSensorData(char* incomingData, unsigned int packetLength, char* prefixes[], int dataLength, float data[][4]);
+	bool GetSensorData(char* incomingData, unsigned int packetLength, char* prefixes[], int dataLength, float data[][4], bool prefixFound[]);
 	int SetupSerialPort();
     double frequency() const;
     double amplitude() const;
+
+Q_SIGNALS:
+	void signalEchoCommand(EchoCommand*);
 
 public Q_SLOTS:
     void setAmplitude( double );
@@ -52,5 +36,6 @@ private:
 	unsigned int iDataLength;
 	Serial* Sp;
 	FILE* fp;
+	SensorDataParser* pSensorDataParser;
 	RunningAverage RunningAvg; 
 };

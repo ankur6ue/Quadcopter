@@ -49,9 +49,10 @@ enum MotorId
 	FL
 };
 
-#define ESC_HIGH_DEFAULT 180 // Note that the servo lib maxes out at 200, so any value higher is capped at 180
+#define ESC_HIGH_DEFAULT 180 // Note that the servo lib maxes out at 180, so any value higher is capped at 180
 #define ESC_LOW_DEFAULT 20
-
+//#define ESC_HIGH_DEFAULT MAX_PULSE_WIDTH // Note that the servo lib maxes out at 200, so any value higher is capped at 180
+//#define ESC_LOW_DEFAULT MIN_PULSE_WIDTH
 // Stores the settings for all ESC. This can be made specific to each ESC, but that's not needed
 // for a quadcopter project
 typedef struct ESCSettingsDef
@@ -65,6 +66,7 @@ class BLMotors
 public:
 	BLMotors();
 	void Init();
+	void Reset();
 	void Test(int speed);
 	void Run(MotorId id, int speed);
 

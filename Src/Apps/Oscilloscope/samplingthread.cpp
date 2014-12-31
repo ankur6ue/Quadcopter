@@ -2,10 +2,45 @@
 #include "signaldata.h"
 #include <qwt_math.h>
 #include <math.h>
+#include "sensordataparser.h"
+#include <qlist.h>
 
 #if QT_VERSION < 0x040600
 #define qFastSin(x) ::sin(x)
 #endif
+
+#define LOGBUFSIZE 200
+enum ERRORS
+{
+	BUFFER_OVERFLOW = 1
+};
+
+
+void SensorDataParserImplCommands::Parse(char* incomingData, int packetLength)
+{
+	bPrefixFound = false;
+	if (PrefixLength == -1) return;
+	printf("%s\n", incomingData);
+	for (int i = 0; i < max(0, packetLength-PrefixLength); i++)
+	{
+		if (!strncmp(incomingData + i, Prefix, PrefixLength))
+		{
+			float val1, val2;
+			
+			if (sscanf(incomingData + i, "AT Speed %f", &val2))
+			{
+				EchoCommand* cmd = new EchoCommand("Speed", val2);
+				pSamplingThread->signalEchoCommand(cmd);
+			}
+
+			if (sscanf(incomingData + i, "AT MotorToggle %f", &val1))
+			{
+				EchoCommand* cmd = new EchoCommand("MotorToggle", val1);
+				pSamplingThread->signalEchoCommand(cmd);
+			}
+		}
+	}
+}
 
 SamplingThread::SamplingThread( QObject *parent ):
     QwtSamplingThread( parent ),
@@ -13,15 +48,20 @@ SamplingThread::SamplingThread( QObject *parent ):
     d_amplitude( 20.0 ), iDataLength(1500)
 {
 	SetupSerialPort();
+	pSensorDataParser = new SensorDataParser();
+	pSensorDataParser->RegisterDataParser(new SensorDataParserImplYpr(this, "ypr", 3));
+	pSensorDataParser->RegisterDataParser(new SensorDataParserImplFusion(this, "fusion", 3));
+	pSensorDataParser->RegisterDataParser(new SensorDataParserImplCommands(this));
+
 //	fp = fopen("C:\\Qt\\SensorData.txt", "w");
-	
 }
+
 
 // Sets up the serial port on port 16, baud rate = 115200
 int SamplingThread::SetupSerialPort()
 {
 	int success = false;
-	Sp = new Serial("\\\\.\\COM16", 115200);    // adjust as needed
+	Sp = new Serial("\\\\.\\COM19",115200);    // adjust as needed
 
 	if (Sp->IsConnected())
 	{
@@ -51,95 +91,67 @@ double SamplingThread::amplitude() const
     return d_amplitude;
 }
 
-/*
-Purpose: parses the packet read from the serial port and fills the data array with the parsed data
-Params:
-incomingData: Pointer to the incoming data
-packetLength: the length of the packet read. This depends on the sampling interval, the packet length will be smaller for a 
-smaller sampling interval. If the sampling interval is too small, the data packet can be incomplete, leading to bad readings of the
-sensor values
-prefixes: In this application, two data streams are being read - the data stream from the mpu and the data stream resulting from
-sensor fusion of the accelerometer and gyroscope data. The prefixes array contains the prefixes for the two streams, so the parser
-knows which one is which
-dataLength: Tells the parser how many data elements follow the prefix. For example for yaw-pitch-roll data, dataLength = 3
-data: The sensor values read are stored in the data array. 
-*/
-bool SamplingThread::GetSensorData(char* incomingData, unsigned int packetLength, char* prefixes[], int dataLength, float data[][4])
-{
-	printf("%d\n", packetLength);
-	int prefixLength[2];
-	prefixLength[0] = strlen(prefixes[0]);
-	prefixLength[1] = strlen(prefixes[1]);
-	bool prefixFound[2] = {false, false};
-
-	for (int j = 0; j < 2; j++)
-	{
-		for (int i = 0; i < max(0, packetLength-prefixLength[j]); i++)
-		{
-			if (!strncmp(incomingData + i, prefixes[j], prefixLength[j]))
-			{
-				int read = 0;
-				if (dataLength == 1)
-					read = sscanf(incomingData+i+prefixLength[j], "%f\t", data[j]);
-				if (dataLength == 2)
-					read = sscanf(incomingData+i+prefixLength[j], "%f\t%f\t", data[j], data[j]+1);
-				if (dataLength == 3)
-					read = sscanf(incomingData+i+prefixLength[j], "%f\t%f\t%f", data[j], data[j]+1, data[j]+2);
-				if (dataLength == 4)
-					read = sscanf(incomingData+i+prefixLength[j], "%f\t%f\t%f\t%f", data[j], data[j]+1, data[j]+2, data[j]+3);
-				// assert (read == dataLength)
-				//	fprintf(fp, "%f\n", data[j]);
-
-				//float udata = abs(data[1]);
-				//RunningAvg.Accum(udata);
-				//float avg = RunningAvg.GetAvg();
-				//if (udata > 1.2*avg || udata < 0.8*avg)
-				//{
-				//	printf("here comes trouble\n");
-				//}
-				prefixFound[j] = true;
-				break;
-			}
-		}
-	}
-	if (prefixFound[0] == true && prefixFound[1] == true) return true;
-	return false;
-}
-
 void SamplingThread::sample( double elapsed )
 {
     if ( d_frequency > 0.0 )
     {
+		
+		memset(cIncomingData, 0, 2000);
 		int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
 	//	printf("Bytes read: (-1 means no data available) %i\n",readResult);
 		if (bytesRead != -1)
 		{
-			char* prefixes[2];
-			float data[2][4];
-			prefixes[0] = "mpu"; // hardcoded for now, should match the prefix used in Serial.Print command on the microprocessor
-			prefixes[1] = "fusion";
-			if (GetSensorData(cIncomingData, bytesRead, prefixes, 3, data))
+			pSensorDataParser->Parse(cIncomingData, bytesRead);
+			pSensorDataParser->Plot(elapsed);
+		}	
+
+		UserCommands* commandInstance = &(UserCommands::Instance());
+		if (commandInstance->IsDirty())
+		{
+			int numChar = 0;
+			typedef struct
 			{
-				const QPointF y1( elapsed, data[0][0]);
-				SignalData::instance(yaw, MPU).append( y1 );
+				char	command[32];
+				int		numChar;
+			} CommandDef;
 
-				const QPointF r2( elapsed, data[1][0]);
-				SignalData::instance(roll, SensorFusion).append( r2 );
-					
-				const QPointF p1( elapsed, data[0][1]);
-				SignalData::instance(pitch, MPU).append( p1);
+			// Need to put the commands on the list as there could be more than one flags that were modified.
+			// For example when the motors are turned off, speed is also set to zero. 
+			QList<CommandDef*> commandList;
+			CommandDef* pcommandDef;
+			
+			if (commandInstance->IsDirty(SPEED))
+			{
+				// We are only reading the shared variables, which is likely to be an atomic operation and locks are likely not required
+				// but better be safe than sorry. 
+				commandInstance->doLock();
+				int _speed = commandInstance->GetSpeed();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef();
+				pcommandDef->numChar  = commandInstance->CreateCommand(pcommandDef->command, "Speed", (float)_speed);
+				commandList.push_back(pcommandDef);
+			}
 
-				const QPointF p2( elapsed, data[1][1]);
-				SignalData::instance(pitch, SensorFusion).append( p2);
-
-				const QPointF r1( elapsed, data[0][2]);
-				SignalData::instance(roll, MPU).append( r1 );
-
-				const QPointF y2( elapsed, data[1][2]);
-				SignalData::instance(yaw, SensorFusion).append( y2 );
+			if (commandInstance->IsDirty(MOTORTOGGLE))
+			{
+				commandInstance->doLock();
+				bool bmotorToggle = commandInstance->GetMotorToggle();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef();
+				pcommandDef->numChar = commandInstance->CreateCommand(pcommandDef->command, "MotorToggle", (float)bmotorToggle);
+				commandList.push_back(pcommandDef);
+			}
+			
+			for (int i = 0; i < commandList.length(); i++)
+			{
+				int numChar = commandList[i]->numChar;
+				if (numChar > 0)
+				{
+					Sp->WriteData(commandList[i]->command, numChar);
+				}
+				delete commandList[i];
 			}
 		}
-		
     }
 }
 

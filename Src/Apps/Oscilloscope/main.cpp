@@ -20,6 +20,9 @@ int main( int argc, char **argv )
     window.connect( &window, SIGNAL( signalIntervalChanged( double ) ),
         &samplingThread, SLOT( setInterval( double ) ) );
 
+	// signals emitted from the sampling thread, when commands from the arduino arrive
+	samplingThread.connect(&samplingThread, SIGNAL(signalEchoCommand(EchoCommand*)), &window, SLOT (echoCommand(EchoCommand*)));
+
     window.show();
 
     samplingThread.start();

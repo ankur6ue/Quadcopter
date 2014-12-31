@@ -1,7 +1,6 @@
 #include "signaldata.h"
 #include <qvector.h>
 #include <qmutex.h>
-#include <qreadwritelock.h>
 
 class SignalData::PrivateData
 {
@@ -35,7 +34,7 @@ public:
     }
 
     QReadWriteLock lock;
-
+	
     QVector<QPointF> values;
     QRectF boundingRect;
 

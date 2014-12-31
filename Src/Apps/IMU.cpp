@@ -17,6 +17,7 @@
 */
 #include "IMU.h"
 #include "MPU6050_6Axis_MotionApps20.h"
+#include "quadcopter.h"
 
 extern volatile bool MPUInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
@@ -34,9 +35,9 @@ IMU::IMU()
 
 void PrintMotion6Data(int ax, int ay, int az, int gx, int gy, int gz)
 {
-	Serial.print(ax); Serial.print(" "); Serial.print(ay); Serial.print(" "); Serial.print(az);
-	Serial.print(gx); Serial.print(" "); Serial.print(gy); Serial.print(" "); Serial.print(gz);
-	Serial.print("\n");
+	SERIAL.print(ax); SERIAL.print(" "); SERIAL.print(ay); SERIAL.print(" "); SERIAL.print(az);
+	SERIAL.print(gx); SERIAL.print(" "); SERIAL.print(gy); SERIAL.print(" "); SERIAL.print(gz);
+	SERIAL.print("\n");
 }
 
 void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
@@ -92,16 +93,16 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
 void IMU::Init()
 {
 	// Initialize device
-	Serial.println("Initializing I2C devices...");
+	SERIAL.println("Initializing I2C devices...");
 	accelgyro->initialize();
 
 	//-885	-2964	1254	-4	-45	-34
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
 	uint8_t gyroSampleRate = accelgyro->getRate(); // according to the doc, accelerometer sample rate is always 1KHz.
-	Serial.println("gyro sample rate = "); Serial.print(gyroSampleRate); Serial.print("\n");
-	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
-	Serial.print("Offsets are: (gyro, accel) ");
-	PrintMotion6Data(gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
+	SERIAL.println("gyro sample rate = "); SERIAL.print(gyroSampleRate); SERIAL.print("\n");
+//	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
+//	SERIAL.print("Offsets are: (gyro, accel) ");
+//	PrintMotion6Data(gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
 //	accelgyro->setXAccelOffset(-885);
 //	accelgyro->setYAccelOffset(-2964);
 //	accelgyro->setZAccelOffset(1254);
@@ -110,11 +111,11 @@ void IMU::Init()
 //	accelgyro->setZGyroOffset(gZOffset);
 
 	// Check connection
-	Serial.println("Testing device connections...");
-	Serial.println(accelgyro->testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+	SERIAL.println("Testing device connections...");
+	SERIAL.println(accelgyro->testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
 
 	delay(100); // Wait for sensor to stabilize
-
+/*
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
 
@@ -155,6 +156,7 @@ void IMU::Init()
 	gyroZoffset = sZ/n;
 
 	j=0;
+	*/
 }
 
 bool IMU::IntegrateGyro()
@@ -168,16 +170,16 @@ bool IMU::IntegrateGyro()
 	        // get default full scale value of gyro - may have changed from default
 	        // function call returns values between 0 and 3
 	        uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
-	        Serial.print("FS_SEL = ");
-	        Serial.println(READ_FS_SEL);
+	        SERIAL.print("FS_SEL = ");
+	        SERIAL.println(READ_FS_SEL);
 	        GYRO_FACTOR = 131.0/(FS_SEL + 1);
 
 
 	        // get default full scale value of accelerometer - may not be default value.
 	        // Accelerometer scale factor doesn't reall matter as it divides out
 	        uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
-	        Serial.print("AFS_SEL = ");
-	        Serial.println(READ_AFS_SEL);
+	        SERIAL.print("AFS_SEL = ");
+	        SERIAL.println(READ_AFS_SEL);
 	        //ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
 
 
@@ -225,7 +227,7 @@ bool IMU::DMPInit()
 {
 
     // load and configure the DMP
-    Serial.println(F("Initializing DMP..."));
+    SERIAL.println(F("Initializing DMP..."));
     bool devStatus = accelgyro->dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -237,17 +239,17 @@ bool IMU::DMPInit()
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+        SERIAL.println(F("Enabling DMP..."));
         accelgyro->setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+        SERIAL.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
         attachInterrupt(0, DMPDataReady, RISING);
         // get expected DMP packet size for later comparison
         PacketSize = accelgyro->dmpGetFIFOPacketSize();
-        Serial.println("Packet Size = "); Serial.print(PacketSize);
+        SERIAL.println("Packet Size = "); SERIAL.print(PacketSize);
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("\nDMP ready! Waiting for first interrupt..."));
+        SERIAL.println(F("\nDMP ready! Waiting for first interrupt..."));
         DMPReady = true;
     }
 }
@@ -275,7 +277,7 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 		if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
 			// reset so we can continue cleanly
 			accelgyro->resetFIFO();
-			Serial.println(F("FIFO overflow!"));
+			SERIAL.println(F("FIFO overflow!"));
 
 			// otherwise, check for DMP data ready interrupt (this should happen freQuently)
 		}
@@ -351,14 +353,14 @@ bool IMU::processAngles(float angles[],float rates[])
 	////	Frequency print
 	  //case 1: 
 		   //dtostrf(compAngleX - 180  ,6,2,StrAnglesvib);
-		    //Serial.print(StrAnglesvib); 
+		    //SERIAL.print(StrAnglesvib);
 		   //break;
 	  //case 2:
-		   //Serial.print("  ");
+		   //SERIAL.print("  ");
 		   //break;
 	  //case 3:
 	  		//dtostrf(gyroXangle -180,6,2,StrAnglesvib);	
-			//Serial.println(StrAnglesvib);
+			//SERIAL.println(StrAnglesvib);
 		   //j=0;
 		   //break;
 	  //}	   

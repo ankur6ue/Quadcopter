@@ -47,18 +47,23 @@ void BLMotors::Init()
 	for(int i = 0; i < NUMMOTORS; i++)
 		{
 		  int pin = Motors[i].Pin;
-		  Motors[i].Motor.attach(pin);
+		  // Must match the low and high pulse widths provided during the throttle set pass for the ESCs.
+		  Motors[i].Motor.attach(pin /*, ESCSettings.Low, ESCSettings.High*/);
 		  Motors[i].Speed 	= ESCSettings.Low;
 		  Motors[i].Step	= 1;
 		}
 
 		Serial.println("Setting the motors in normal mode");
+		Reset();
+}
 
-		for (int i = 0; i < NUMMOTORS; i++)
-		{
-		  Motors[i].Motor.write(ESCSettings.Low);
-		}
-		delay(500);
+void BLMotors::Reset()
+{
+	for (int i = 0; i < NUMMOTORS; i++)
+	{
+	  Motors[i].Motor.write(ESCSettings.Low);
+	}
+//	delay(500);
 }
 
 void BLMotors::Run(MotorId motorId, int _speed)

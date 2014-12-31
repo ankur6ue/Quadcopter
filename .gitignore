@@ -26,6 +26,14 @@ Projects/Eclipse/.metadata/
 *.ino
 *.idb
 *.ncb
+*.log
+*.sdf
+*.tlog
+*.filters
+*.lastbuildstate
+*.exe
+*.htm
+*.XML
 WIP/*
 
 # =========================
@@ -40,7 +48,8 @@ WIP/*
 .LSOverride
 
 # Icon must ends with two \r.
-Icon
+Icon
+
 
 # Thumbnails
 ._*

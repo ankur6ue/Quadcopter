@@ -19,8 +19,8 @@
 
 QT_BEGIN_MOC_NAMESPACE
 struct qt_meta_stringdata_MainWindow_t {
-    QByteArrayData data[6];
-    char stringdata[81];
+    QByteArrayData data[11];
+    char stringdata[150];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -34,11 +34,17 @@ QT_MOC_LITERAL(1, 11, 16),
 QT_MOC_LITERAL(2, 28, 0),
 QT_MOC_LITERAL(3, 29, 16),
 QT_MOC_LITERAL(4, 46, 21),
-QT_MOC_LITERAL(5, 68, 12)
+QT_MOC_LITERAL(5, 68, 12),
+QT_MOC_LITERAL(6, 81, 11),
+QT_MOC_LITERAL(7, 93, 12),
+QT_MOC_LITERAL(8, 106, 11),
+QT_MOC_LITERAL(9, 118, 12),
+QT_MOC_LITERAL(10, 131, 18)
     },
     "MainWindow\0amplitudeChanged\0\0"
     "frequencyChanged\0signalIntervalChanged\0"
-    "setAmplitude"
+    "setAmplitude\0textChanged\0speedChanged\0"
+    "echoCommand\0EchoCommand*\0motorToggleClicked"
 };
 #undef QT_MOC_LITERAL
 
@@ -48,7 +54,7 @@ static const uint qt_meta_data_MainWindow[] = {
        7,       // revision
        0,       // classname
        0,    0, // classinfo
-       4,   14, // methods
+       8,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -56,12 +62,16 @@ static const uint qt_meta_data_MainWindow[] = {
        3,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    1,   34,    2, 0x06 /* Public */,
-       3,    1,   37,    2, 0x06 /* Public */,
-       4,    1,   40,    2, 0x06 /* Public */,
+       1,    1,   54,    2, 0x06 /* Public */,
+       3,    1,   57,    2, 0x06 /* Public */,
+       4,    1,   60,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       5,    1,   43,    2, 0x0a /* Public */,
+       5,    1,   63,    2, 0x0a /* Public */,
+       6,    1,   66,    2, 0x0a /* Public */,
+       7,    1,   69,    2, 0x0a /* Public */,
+       8,    1,   72,    2, 0x0a /* Public */,
+      10,    0,   75,    2, 0x0a /* Public */,
 
  // signals: parameters
     QMetaType::Void, QMetaType::Double,    2,
@@ -70,6 +80,10 @@ static const uint qt_meta_data_MainWindow[] = {
 
  // slots: parameters
     QMetaType::Void, QMetaType::Double,    2,
+    QMetaType::Void, QMetaType::QString,    2,
+    QMetaType::Void, QMetaType::Double,    2,
+    QMetaType::Void, 0x80000000 | 9,    2,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -83,6 +97,10 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 1: _t->frequencyChanged((*reinterpret_cast< double(*)>(_a[1]))); break;
         case 2: _t->signalIntervalChanged((*reinterpret_cast< double(*)>(_a[1]))); break;
         case 3: _t->setAmplitude((*reinterpret_cast< double(*)>(_a[1]))); break;
+        case 4: _t->textChanged((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 5: _t->speedChanged((*reinterpret_cast< double(*)>(_a[1]))); break;
+        case 6: _t->echoCommand((*reinterpret_cast< EchoCommand*(*)>(_a[1]))); break;
+        case 7: _t->motorToggleClicked(); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -134,13 +152,13 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 4)
+        if (_id < 8)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 4;
+        _id -= 8;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 4)
+        if (_id < 8)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 4;
+        _id -= 8;
     }
     return _id;
 }

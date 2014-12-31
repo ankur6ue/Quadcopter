@@ -118,18 +118,32 @@ int Serial::ReadData(char *buffer, unsigned int& nbChar)
 
 bool Serial::WriteData(char *buffer, unsigned int nbChar)
 {
-	DWORD bytesSend;
+	DWORD bytesSent;
 
-	//Try to write the buffer on the Serial port
-	if(!WriteFile(this->hSerial, (void *)buffer, nbChar, &bytesSend, 0))
+	// Flush the serial port
+	FlushFileBuffers(this->hSerial);
+
+	BOOL bresult = WriteFile(this->hSerial, (void *)buffer, nbChar, &bytesSent, 0);
+
+	if (bresult)
+	{
+		// verify we wrote all the bytes
+		if (bytesSent == nbChar)
+		{
+			Sleep(50);
+			return true;
+		}
+		else
+		{
+			printf("Unable to send all data to the serial port\n");
+		}
+	}
+	else
 	{
 		//In case it don't work get comm error and return false
 		ClearCommError(this->hSerial, &this->errors, &this->status);
-
-		return false;
 	}
-	else
-		return true;
+	return false;
 }
 
 bool Serial::IsConnected()

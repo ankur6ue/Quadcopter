@@ -103,7 +103,7 @@ MPU6050 mpu;
 // from the FIFO. Note this also requires gravity vector calculations.
 // Also note that yaw/pitch/roll angles suffer from gimbal lock (for
 // more info, see: http://en.wikipedia.org/wiki/Gimbal_lock)
-#define OUTPUT_READABLE_YAWPITCHROLL
+ #define OUTPUT_READABLE_YAWPITCHROLL
 
 // uncomment "OUTPUT_READABLE_REALACCEL" if you want to see acceleration
 // components with gravity removed. This acceleration reference frame is
@@ -165,7 +165,7 @@ int CurrentSpeed	= 140;
 int CurrentMotor	= 0;
 int CurrentDir		= 0;
 int Combo			= 0;
-
+static long Before			= 0;
 // ================================================================
 // ===                      INITIAL SETUP                       ===
 // ================================================================
@@ -248,7 +248,6 @@ void setup() {
 void loop() {
     // if programming failed, don't try to do anything
     if (!dmpReady) return;
-
     // wait for MPU interrupt or extra packet(s) available
     while (!mpuInterrupt && fifoCount < packetSize) {
         
@@ -256,7 +255,6 @@ void loop() {
         // stuff to see if mpuInterrupt is true, and if so, "break;" from the
         // while() loop to immediately process the MPU data
     }
-
     // reset interrupt flag and get INT_STATUS byte
     mpuInterrupt = false;
     mpuIntStatus = mpu.getIntStatus();
@@ -272,6 +270,10 @@ void loop() {
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
+    	// Calculate interrupt frequency
+    	long now = micros();
+    	Serial.print(now-Before);Serial.print("\n");
+    	Before = now;
         // wait for correct available data length, should be a VERY short wait
         while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
 

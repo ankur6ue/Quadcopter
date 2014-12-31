@@ -61,7 +61,7 @@ int Step = 6;
 void setup()
 {
 	// Required for I/O from Serial monitor
-	Serial.begin(9600);
+	Serial.begin(115200);
 	Serial.println("Setup: Serial port communication at 9600bps");
 	// Attach motors to pins
 
@@ -109,11 +109,11 @@ void SetThrottleRange()
 	  Motors[i].Motor.write(ESCSettings.High);
 	}
 
-//	Serial.println("Connect the ESC now. After connecting the ESC, you should hear \
-//			the ESC startup tones. Shortly afterwards, you should hear two beeps \
-//			indicating that the ESC has registered the high throttle value. Immediately \
-//			after hearing the two beeps, push any key. If you don't do so in 5 sec, the ESC will \
-//			go into program mode");
+	Serial.println("Connect the ESC now. After connecting the ESC, you should hear \
+			the ESC startup tones. Shortly afterwards, you should hear two beeps \
+			indicating that the ESC has registered the high throttle value. Immediately \
+			after hearing the two beeps, push any key. If you don't do so in 5 sec, the ESC will \
+			go into program mode");
 
 	// Wait for user input
 	while (!Serial.available())
@@ -121,10 +121,10 @@ void SetThrottleRange()
 	}
 	Serial.read();
 
-//	Serial.println("\nSetting the low throttle setting. If this happens successfully, you should hear \
-//			several beeps indicating the input voltage supplied to the ESC followed by a long beep \
-//			indicating that the low throttle has been set. After this point, push any key to proceed,\
-//		    your ESC is ready to be used");
+	Serial.println("\nSetting the low throttle setting. If this happens successfully, you should hear \
+			several beeps indicating the input voltage supplied to the ESC followed by a long beep \
+			indicating that the low throttle has been set. After this point, push any key to proceed,\
+		    your ESC is ready to be used");
 
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
