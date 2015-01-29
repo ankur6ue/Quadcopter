@@ -130,7 +130,6 @@ bool Serial::WriteData(char *buffer, unsigned int nbChar)
 		// verify we wrote all the bytes
 		if (bytesSent == nbChar)
 		{
-			Sleep(50);
 			return true;
 		}
 		else

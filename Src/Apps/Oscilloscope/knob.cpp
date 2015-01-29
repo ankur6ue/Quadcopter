@@ -12,11 +12,11 @@ Knob::Knob( const QString &title, double min, double max, QWidget *parent ):
 {
     QFont font( "Helvetica", 10 );
 
-    d_knob = new QwtKnob( this );
-    d_knob->setFont( font );
+    pknob = new QwtKnob( this );
+    pknob->setFont( font );
 
     QwtScaleDiv scaleDiv =
-        d_knob->scaleEngine()->divideScale( min, max, 5, 3 );
+        pknob->scaleEngine()->divideScale( min, max, 5, 3 );
 
     QList<double> ticks = scaleDiv.ticks( QwtScaleDiv::MajorTick );
     if ( ticks.size() > 0 && ticks[0] > min )
@@ -27,31 +27,31 @@ Knob::Knob( const QString &title, double min, double max, QWidget *parent ):
             ticks.append( max );
     }
     scaleDiv.setTicks( QwtScaleDiv::MajorTick, ticks );
-    d_knob->setScale( scaleDiv );
+    pknob->setScale( scaleDiv );
 
-    d_knob->setKnobWidth( 50 );
+    pknob->setKnobWidth( 50 );
 
     font.setBold( true );
-    d_label = new QLabel( title, this );
-    d_label->setFont( font );
-    d_label->setAlignment( Qt::AlignTop | Qt::AlignHCenter );
+    plabel = new QLabel( title, this );
+    plabel->setFont( font );
+    plabel->setAlignment( Qt::AlignTop | Qt::AlignHCenter );
 
     setSizePolicy( QSizePolicy::MinimumExpanding,
         QSizePolicy::MinimumExpanding );
 
-    connect( d_knob, SIGNAL( valueChanged( double ) ),
+    connect( pknob, SIGNAL( valueChanged( double ) ),
         this, SIGNAL( valueChanged( double ) ) );
 }
 
 QSize Knob::sizeHint() const
 {
-    QSize sz1 = d_knob->sizeHint();
-    QSize sz2 = d_label->sizeHint();
+    QSize sz1 = pknob->sizeHint();
+    QSize sz2 = plabel->sizeHint();
 
     const int w = qMax( sz1.width(), sz2.width() );
     const int h = sz1.height() + sz2.height();
 
-    int off = qCeil( d_knob->scaleDraw()->extent( d_knob->font() ) );
+    int off = qCeil( pknob->scaleDraw()->extent( pknob->font() ) );
     off -= 15; // spacing
 
     return QSize( w, h - off );
@@ -59,37 +59,37 @@ QSize Knob::sizeHint() const
 
 void Knob::setValue( double value )
 {
-    d_knob->setValue( value );
+    pknob->setValue( value );
 }
 
 double Knob::value() const
 {
-    return d_knob->value();
+    return pknob->value();
 }
 
 void Knob::setTheme( const QColor &color )
 {
-    d_knob->setPalette( color );
+    pknob->setPalette( color );
 }
 
 QColor Knob::theme() const
 {
-    return d_knob->palette().color( QPalette::Window );
+    return pknob->palette().color( QPalette::Window );
 }
 
 void Knob::resizeEvent( QResizeEvent *event )
 {
     const QSize sz = event->size();
-    const QSize hint = d_label->sizeHint();
+    const QSize hint = plabel->sizeHint();
 
-    d_label->setGeometry( 0, sz.height() - hint.height(),
+    plabel->setGeometry( 0, sz.height() - hint.height(),
         sz.width(), hint.height() );
 
-    const int knobHeight = d_knob->sizeHint().height();
+    const int knobHeight = pknob->sizeHint().height();
 
-    int off = qCeil( d_knob->scaleDraw()->extent( d_knob->font() ) );
+    int off = qCeil( pknob->scaleDraw()->extent( pknob->font() ) );
     off -= 15; // spacing
 
-    d_knob->setGeometry( 0, d_label->pos().y() - knobHeight + off,
+    pknob->setGeometry( 0, plabel->pos().y() - knobHeight + off,
         sz.width(), knobHeight );
 }

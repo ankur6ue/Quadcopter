@@ -71,6 +71,6 @@ namespace Ui {
     class BasicWindowClass: public Ui_BasicWindowClass {};
 } // namespace Ui
 
-QT_END_NAMESPACE
+QT_ENpNAMESPACE
 
 #endif // UI_BASICWINDOW_H

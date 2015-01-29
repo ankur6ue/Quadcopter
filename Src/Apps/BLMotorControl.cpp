@@ -25,55 +25,72 @@ the ESC will see random values on the PWM pin.
 */
 
 // Need the Servo library
+
+#ifndef _BLMOTOR_CONTROL_
+#define _BLMOTOR_CONTROL_
+
 #include "Utils.h"
 #include "BLMotorControl.h"
 
-BLMotors::BLMotors()
+
+BLMotor MotorFR(11);
+BLMotor MotorBL(10);
+BLMotor MotorBR(5);
+BLMotor MotorFL(6);
+
+ESCSettingsDef ESCSettings(ESC_LOW_DEFAULT, ESC_HIGH_DEFAULT);
+
+void InitMotors()
+{
+	MotorFR.Init();
+	MotorBR.Init();
+	MotorFL.Init();
+	MotorBL.Init();
+}
+
+void ResetMotors()
+{
+	MotorFR.Reset();
+	MotorBR.Reset();
+	MotorFL.Reset();
+	MotorBL.Reset();
+}
+
+BLMotor::BLMotor(int pin)
 {
 	// Required for I/O from Serial monitor
 	// Attach motors to pins
-
-    Motors[0].Pin =  11;
-	Motors[1].Pin =  10;
-	Motors[2].Pin =  5;
-	Motors[3].Pin =  6;
-
-	ESCSettings.High = ESC_HIGH_DEFAULT;
-	ESCSettings.Low = ESC_LOW_DEFAULT;
+	Pin = pin;
+	bIsRunning = true;
 }
 
-void BLMotors::Init()
+void BLMotor::Init()
 {
-	for(int i = 0; i < NUMMOTORS; i++)
-		{
-		  int pin = Motors[i].Pin;
-		  // Must match the low and high pulse widths provided during the throttle set pass for the ESCs.
-		  Motors[i].Motor.attach(pin /*, ESCSettings.Low, ESCSettings.High*/);
-		  Motors[i].Speed 	= ESCSettings.Low;
-		  Motors[i].Step	= 1;
-		}
-
-		Serial.println("Setting the motors in normal mode");
-		Reset();
+	Speed = ESCSettings.Low;
+	Step = 1;
+	Motor.attach(Pin);
+	Reset();
 }
 
-void BLMotors::Reset()
+void BLMotor::Reset()
 {
-	for (int i = 0; i < NUMMOTORS; i++)
-	{
-	  Motors[i].Motor.write(ESCSettings.Low);
-	}
+	Motor.write(ESCSettings.Low);
 //	delay(500);
 }
 
-void BLMotors::Run(MotorId motorId, int _speed)
+void BLMotor::Run(int _speed)
 {
-	if (motorId < 0 || motorId > 3) return;
-
-	int speed = constrain_i(_speed, ESCSettings.Low, ESCSettings.High);
-	Motors[motorId].Speed = speed;
-	Motors[motorId].Motor.write(speed);
+	if (bIsRunning)
+	{
+		int speed = constrain_i(_speed, ESCSettings.Low, 90);
+		Speed = speed;
+		Motor.write(speed);
+	}
+	else
+	{
+		Speed = 0;
+		Motor.write(0);
+	}
 }
 
-
-
+#endif

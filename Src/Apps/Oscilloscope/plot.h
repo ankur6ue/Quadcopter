@@ -39,10 +39,10 @@ private:
     void incrementInterval(CurveDrawData* pcurveDrawData);
 	void replot(CurveDrawData* pcurveDrawData);
 
-    QwtPlotMarker *d_origin;
+    QwtPlotMarker *porigin;
 	QList<CurveDrawData*> CurveDrawDataList;
  
-    QwtInterval d_interval;
-    int d_timerId;
-    QwtSystemClock d_clock;
+    QwtInterval pinterval;
+    int ptimerId;
+    QwtSystemClock pclock;
 };

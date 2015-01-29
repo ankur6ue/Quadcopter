@@ -31,8 +31,8 @@ protected:
     virtual void resizeEvent( QResizeEvent * );
 
 private:
-    QwtKnob *d_knob;
-    QLabel *d_label;
+    QwtKnob *pknob;
+    QLabel *plabel;
 };
 
 #endif

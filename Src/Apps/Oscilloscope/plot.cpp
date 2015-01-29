@@ -19,7 +19,7 @@ public:
 	{
 		pPlotCurve = new QwtPlotCurve();
 		pDirectPainter = new QwtPlotDirectPainter(); 
-		d_paintedPoints = 0;
+		ppaintedPoints = 0;
 	}
 	~CurveDrawData()
 	{
@@ -27,7 +27,7 @@ public:
 		if (pDirectPainter) delete pDirectPainter;
 	}
 	QwtPlotCurve* pPlotCurve;
-	int d_paintedPoints;
+	int ppaintedPoints;
     QwtPlotDirectPainter *pDirectPainter;
 };
 
@@ -97,8 +97,8 @@ private:
 
 Plot::Plot( QWidget *parent, PlotId pid ):
     QwtPlot( parent ),
-    d_interval( 0.0, 10.0 ),
-    d_timerId( -1 ),
+    pinterval( 0.0, 10.0 ),
+    ptimerId( -1 ),
 	ePlotId (pid)
 {
     setAutoReplot( false );
@@ -106,7 +106,7 @@ Plot::Plot( QWidget *parent, PlotId pid ):
     plotLayout()->setAlignCanvasToScales( true );
 
     //setAxisTitle( QwtPlot::xBottom, "Time [s]" );
-    setAxisScale( QwtPlot::xBottom, d_interval.minValue(), d_interval.maxValue() );
+    setAxisScale( QwtPlot::xBottom, pinterval.minValue(), pinterval.maxValue() );
     setAxisScale( QwtPlot::yLeft, -50.0, 50.0 );
 	//setFrameRect(QRect(0,0, 500, 80));
     QwtPlotGrid *grid = new QwtPlotGrid();
@@ -117,31 +117,31 @@ Plot::Plot( QWidget *parent, PlotId pid ):
     grid->enableYMin( false );
     grid->attach( this );
 
-    d_origin = new QwtPlotMarker();
-    d_origin->setLineStyle( QwtPlotMarker::Cross );
-    d_origin->setValue( d_interval.minValue() + d_interval.width() / 2.0, 0.0 );
-    d_origin->setLinePen( Qt::gray, 0.0, Qt::DashLine );
-    d_origin->attach( this );
+    porigin = new QwtPlotMarker();
+    porigin->setLineStyle( QwtPlotMarker::Cross );
+    porigin->setValue( pinterval.minValue() + pinterval.width() / 2.0, 0.0 );
+    porigin->setLinePen( Qt::gray, 0.0, Qt::DashLine );
+    porigin->attach( this );
 
 	for (int i = 0; i < 2; i++)
 	{
 		CurveDrawData *curveDrawData = new CurveDrawData();
-		QwtPlotCurve* d_curve1 = curveDrawData->pPlotCurve;
-		d_curve1->setStyle( QwtPlotCurve::Lines );
+		QwtPlotCurve* pcurve1 = curveDrawData->pPlotCurve;
+		pcurve1->setStyle( QwtPlotCurve::Lines );
 		if (i == 0)
 		{
-			d_curve1->setPen( canvas()->palette().color(QPalette::Light ) );
-			d_curve1->setTitle("MPU");
+			pcurve1->setPen( canvas()->palette().color(QPalette::Light ) );
+			pcurve1->setTitle("MPU");
 		}
 		if (i == 1)
 		{
-			d_curve1->setPen( canvas()->palette().color(QPalette::WindowText) );
-			d_curve1->setTitle("Sensor Fusion");
+			pcurve1->setPen( canvas()->palette().color(QPalette::WindowText) );
+			pcurve1->setTitle("PID");
 		}
-		d_curve1->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-		d_curve1->setPaintAttribute( QwtPlotCurve::ClipPolygons, false );
-		d_curve1->setData( new CurveData(pid, (CurveId)i) );
-		d_curve1->attach( this );
+		pcurve1->setRenderHint( QwtPlotItem::RenderAntialiased, true );
+		pcurve1->setPaintAttribute( QwtPlotCurve::ClipPolygons, false );
+		pcurve1->setData( new CurveData(pid, (CurveId)i) );
+		pcurve1->attach( this );
 		CurveDrawDataList.push_back(curveDrawData);
 
 	}
@@ -153,13 +153,13 @@ Plot::~Plot()
 	{
 		delete CurveDrawDataList[i];
 	}
-//    delete d_directPainter;
+//    delete pdirectPainter;
 }
 
 void Plot::start()
 {
-    d_clock.start();
-    d_timerId = startTimer( 10 );
+    pclock.start();
+    ptimerId = startTimer( 10 );
 }
 
 void Plot::replot(CurveDrawData* pcurveDrawData)
@@ -168,7 +168,7 @@ void Plot::replot(CurveDrawData* pcurveDrawData)
     data->values().lock();
 
     QwtPlot::replot();
-	pcurveDrawData->d_paintedPoints = data->size();
+	pcurveDrawData->ppaintedPoints = data->size();
 
     data->values().unlock();
 }
@@ -183,11 +183,11 @@ void Plot::replot()
 
 void Plot::setIntervalLength( double interval )
 {
-    if ( interval > 0.0 && interval != d_interval.width() )
+    if ( interval > 0.0 && interval != pinterval.width() )
     {
-        d_interval.setMaxValue( d_interval.minValue() + interval );
+        pinterval.setMaxValue( pinterval.minValue() + interval );
         setAxisScale( QwtPlot::xBottom,
-            d_interval.minValue(), d_interval.maxValue() );
+            pinterval.minValue(), pinterval.maxValue() );
 
         replot();
     }
@@ -195,12 +195,12 @@ void Plot::setIntervalLength( double interval )
 
 void Plot::updateCurve(CurveDrawData* pcurveDrawData)
 {
-	QwtPlotCurve* d_curve = pcurveDrawData->pPlotCurve;
-	CurveData *data = static_cast<CurveData *>( d_curve->data() );
+	QwtPlotCurve* pcurve = pcurveDrawData->pPlotCurve;
+	CurveData *data = static_cast<CurveData *>( pcurve->data() );
     data->values().lock();
 
     const int numPoints = data->size();
-    if ( numPoints > pcurveDrawData->d_paintedPoints )
+    if ( numPoints > pcurveDrawData->ppaintedPoints )
     {
         const bool doClip = !canvas()->testAttribute( Qt::WA_PaintOnScreen );
         if ( doClip )
@@ -212,19 +212,19 @@ void Plot::updateCurve(CurveDrawData* pcurveDrawData)
                 to an unaccelerated frame buffer device.
             */
 
-            const QwtScaleMap xMap = canvasMap( d_curve->xAxis() );
-            const QwtScaleMap yMap = canvasMap( d_curve->yAxis() );
+            const QwtScaleMap xMap = canvasMap( pcurve->xAxis() );
+            const QwtScaleMap yMap = canvasMap( pcurve->yAxis() );
 
             QRectF br = qwtBoundingRect( *data,
-                pcurveDrawData->d_paintedPoints - 1, numPoints - 1 );
+                pcurveDrawData->ppaintedPoints - 1, numPoints - 1 );
 
             const QRect clipRect = QwtScaleMap::transform( xMap, yMap, br ).toRect();
             pcurveDrawData->pDirectPainter->setClipRegion( clipRect );
         }
 
-        pcurveDrawData->pDirectPainter->drawSeries( d_curve,
-            pcurveDrawData->d_paintedPoints - 1, numPoints - 1 );
-        pcurveDrawData->d_paintedPoints = numPoints;
+        pcurveDrawData->pDirectPainter->drawSeries( pcurve,
+            pcurveDrawData->ppaintedPoints - 1, numPoints - 1 );
+        pcurveDrawData->ppaintedPoints = numPoints;
     }
 
     data->values().unlock();
@@ -240,8 +240,8 @@ void Plot::updateCurve()
 
 void Plot::incrementInterval(CurveDrawData* pcurveDrawData)
 {
-    d_interval = QwtInterval( d_interval.maxValue(),
-        d_interval.maxValue() + d_interval.width() );
+    pinterval = QwtInterval( pinterval.maxValue(),
+        pinterval.maxValue() + pinterval.width() );
 
     
     // To avoid, that the grid is jumping, we disable
@@ -249,20 +249,20 @@ void Plot::incrementInterval(CurveDrawData* pcurveDrawData)
     // manually instead.
 
     QwtScaleDiv scaleDiv = axisScaleDiv( QwtPlot::xBottom );
-    scaleDiv.setInterval( d_interval );
+    scaleDiv.setInterval( pinterval );
 
     for ( int i = 0; i < QwtScaleDiv::NTickTypes; i++ )
     {
         QList<double> ticks = scaleDiv.ticks( i );
         for ( int j = 0; j < ticks.size(); j++ )
-            ticks[j] += d_interval.width();
+            ticks[j] += pinterval.width();
         scaleDiv.setTicks( i, ticks );
     }
     setAxisScaleDiv( QwtPlot::xBottom, scaleDiv );
 
-    d_origin->setValue( d_interval.minValue() + d_interval.width() / 2.0, 0.0 );
+    porigin->setValue( pinterval.minValue() + pinterval.width() / 2.0, 0.0 );
 
-    pcurveDrawData->d_paintedPoints = 0;
+    pcurveDrawData->ppaintedPoints = 0;
     replot();
 }
 
@@ -270,22 +270,22 @@ void Plot::incrementInterval()
 {
 	for (int i = 0; i < CurveDrawDataList.length(); i++)
 	{
-		QwtPlotCurve* d_curve = CurveDrawDataList[i]->pPlotCurve;
+		QwtPlotCurve* pcurve = CurveDrawDataList[i]->pPlotCurve;
 
-		CurveData *data = static_cast<CurveData *>( d_curve->data() );
-	//	data->values().clearStaleValues( d_interval.minValue() );
+		CurveData *data = static_cast<CurveData *>( pcurve->data() );
+	//	data->values().clearStaleValues( pinterval.minValue() );
 	}
 	incrementInterval(CurveDrawDataList[0]);
 }
 
 void Plot::timerEvent( QTimerEvent *event )
 {
-    if ( event->timerId() == d_timerId )
+    if ( event->timerId() == ptimerId )
     {
         updateCurve();
 
-        const double elapsed = d_clock.elapsed() / 1000.0;
-        if ( elapsed > d_interval.maxValue() )
+        const double elapsed = pclock.elapsed() / 1000.0;
+        if ( elapsed > pinterval.maxValue() )
             incrementInterval();
 
         return;

@@ -16,6 +16,8 @@ public:
 	int SetupSerialPort();
     double frequency() const;
     double amplitude() const;
+	bool BlockTillReply(unsigned long timeout, char* ackCmdId);
+	bool CheckForAck(char* ackCmdId);
 
 Q_SIGNALS:
 	void signalEchoCommand(EchoCommand*);
@@ -30,8 +32,8 @@ protected:
 private:
     virtual double value( double timeStamp ) const;
 
-    double d_frequency;
-    double d_amplitude;
+    double pfrequency;
+    double pamplitude;
 	char cIncomingData[2000];
 	unsigned int iDataLength;
 	Serial* Sp;

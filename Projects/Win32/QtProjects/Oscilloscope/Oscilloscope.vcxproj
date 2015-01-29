@@ -11,15 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\ArrowPad.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\curvedata.cpp" />
+    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\joystick.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\knob.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\main.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\mainwindow.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\plot.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\samplingthread.cpp" />
+    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\sensordataparser.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\signaldata.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\wheelbox.cpp" />
     <ClCompile Include="..\..\..\..\Src\Tools\ComPortReader\Serial.cpp" />
+    <ClCompile Include="GeneratedFiles\Debug\moc_joystick.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_knob.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -34,6 +40,9 @@
     </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_wheelbox.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_joystick.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="GeneratedFiles\Release\moc_knob.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -52,7 +61,18 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\commanddef.h" />
     <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\curvedata.h" />
+    <CustomBuild Include="..\..\..\..\Src\Apps\Oscilloscope\joystick.h">
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing joystick.h...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtWidgets" "-I$(INHERIT)\." "-I$(QTDIR)\..\..\qwt-6.1.1\src"</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing joystick.h...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtWidgets"</Command>
+    </CustomBuild>
     <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\plotiddef.h" />
     <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\signaldata.h" />
     <CustomBuild Include="..\..\..\..\Src\Apps\Oscilloscope\wheelbox.h">
@@ -152,7 +172,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(QTDIR)\..\..\qwt-6.1.1\qwt\Win32\Debug;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5Concurrentd.lib;Qt5OpenGLd.lib;Qt5PrintSupportd.lib;Qt5Svgd.lib;qwt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5Concurrentd.lib;Qt5OpenGLd.lib;Qt5PrintSupportd.lib;Qt5Svgd.lib;qwt.lib;%(AdditionalDependencies);dinput8.lib;dxguid.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

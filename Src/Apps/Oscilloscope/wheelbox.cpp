@@ -38,65 +38,65 @@ WheelBox::WheelBox( const QString &title,
     QWidget( parent )
 {
 
-    d_number = new QLCDNumber( this );
-    d_number->setSegmentStyle( QLCDNumber::Filled );
-    d_number->setAutoFillBackground( true );
-    d_number->setFixedHeight( d_number->sizeHint().height() * 2 );
-    d_number->setFocusPolicy( Qt::WheelFocus );
+    pnumber = new QLCDNumber( this );
+    pnumber->setSegmentStyle( QLCDNumber::Filled );
+    pnumber->setAutoFillBackground( true );
+    pnumber->setFixedHeight( pnumber->sizeHint().height() * 2 );
+    pnumber->setFocusPolicy( Qt::WheelFocus );
 
     QPalette pal( Qt::black );
     pal.setColor( QPalette::WindowText, Qt::green );
-    d_number->setPalette( pal );
+    pnumber->setPalette( pal );
 
-    d_wheel = new Wheel( this );
-    d_wheel->setOrientation( Qt::Vertical );
-    d_wheel->setInverted( true );
-    d_wheel->setRange( min, max );
-    d_wheel->setSingleStep( stepSize );
-    d_wheel->setPageStepCount( 5 );
-    d_wheel->setFixedHeight( d_number->height() );
+    pwheel = new Wheel( this );
+    pwheel->setOrientation( Qt::Vertical );
+    pwheel->setInverted( true );
+    pwheel->setRange( min, max );
+    pwheel->setSingleStep( stepSize );
+    pwheel->setPageStepCount( 5 );
+    pwheel->setFixedHeight( pnumber->height() );
 
-    d_number->setFocusProxy( d_wheel );
+    pnumber->setFocusProxy( pwheel );
 
     QFont font( "Helvetica", 10 );
     font.setBold( true );
 
-    d_label = new QLabel( title, this );
-    d_label->setFont( font );
+    plabel = new QLabel( title, this );
+    plabel->setFont( font );
 
     QHBoxLayout *hLayout = new QHBoxLayout;
     hLayout->setContentsMargins( 0, 0, 0, 0 );
     hLayout->setSpacing( 2 );
-    hLayout->addWidget( d_number, 10 );
-    hLayout->addWidget( d_wheel );
+    hLayout->addWidget( pnumber, 10 );
+    hLayout->addWidget( pwheel );
 
     QVBoxLayout *vLayout = new QVBoxLayout( this );
     vLayout->addLayout( hLayout, 10 );
-    vLayout->addWidget( d_label, 0, Qt::AlignTop | Qt::AlignHCenter );
+    vLayout->addWidget( plabel, 0, Qt::AlignTop | Qt::AlignHCenter );
 
-    connect( d_wheel, SIGNAL( valueChanged( double ) ),
-        d_number, SLOT( display( double ) ) );
-    connect( d_wheel, SIGNAL( valueChanged( double ) ),
+    connect( pwheel, SIGNAL( valueChanged( double ) ),
+        pnumber, SLOT( display( double ) ) );
+    connect( pwheel, SIGNAL( valueChanged( double ) ),
         this, SIGNAL( valueChanged( double ) ) );
 }
 
 void WheelBox::setTheme( const QColor &color )
 {
-    d_wheel->setPalette( color );
+    pwheel->setPalette( color );
 }
 
 QColor WheelBox::theme() const
 {
-    return d_wheel->palette().color( QPalette::Window );
+    return pwheel->palette().color( QPalette::Window );
 }
 
 void WheelBox::setValue( double value )
 {
-    d_wheel->setValue( value );
-    d_number->display( value );
+    pwheel->setValue( value );
+    pnumber->display( value );
 }
 
 double WheelBox::value() const
 {
-    return d_wheel->value();
+    return pwheel->value();
 }

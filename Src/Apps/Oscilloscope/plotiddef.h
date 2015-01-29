@@ -11,6 +11,7 @@ enum PlotId
 enum CurveId
 {
 	MPU= 0,
+	PID = 1,
 	SensorFusion
 };
 

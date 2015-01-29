@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "samplingthread.h"
 #include "Serial.h"
+#include "qthread.h"
 
 int main( int argc, char **argv )
 {
@@ -9,7 +10,7 @@ int main( int argc, char **argv )
     app.setPalette( Qt::darkGray );
 
     MainWindow window;
-    window.resize( 800, 400 );
+    window.resize( 900, 200 );
 
     SamplingThread samplingThread;
     samplingThread.setAmplitude( window.amplitude() );

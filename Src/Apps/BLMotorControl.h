@@ -33,20 +33,12 @@ the ESC will see random values on the PWM pin.
 
 #define NUMMOTORS 4
 
-typedef struct MotorDef
-{
-    Servo   Motor;
-    int     Pin;   // Indicates the Pin this motor is connected to
-    int 	Speed;
-    int 	Step;
-};
-
 enum MotorId
 {
-	FR = 0,
-	BL,
-	BR,
-	FL
+	FR = 1,
+	BL = 2,
+	BR = 4,
+	FL = 8
 };
 
 #define ESC_HIGH_DEFAULT 180 // Note that the servo lib maxes out at 180, so any value higher is capped at 180
@@ -55,25 +47,38 @@ enum MotorId
 //#define ESC_LOW_DEFAULT MIN_PULSE_WIDTH
 // Stores the settings for all ESC. This can be made specific to each ESC, but that's not needed
 // for a quadcopter project
+
 typedef struct ESCSettingsDef
 {
-  int Low;
-  int High;
+	ESCSettingsDef(int low, int high) { Low = low; High = high; };
+	int Low;
+	int High;
 };
 
-class BLMotors
+class BLMotor
 {
 public:
-	BLMotors();
+	BLMotor(int);
 	void Init();
 	void Reset();
 	void Test(int speed);
-	void Run(MotorId id, int speed);
-
-	MotorDef Motors[NUMMOTORS];
-	ESCSettingsDef ESCSettings;
-
+	void Run( int speed);
+	Servo   Motor;
+	int     Pin;   // Indicates the Pin this motor is connected to
+	int 	Speed;
+	int 	Step;
+	bool	bIsRunning;
 };
+
+
+
+extern BLMotor MotorFR;
+extern BLMotor MotorBL;
+extern BLMotor MotorBR;
+extern BLMotor MotorFL;
+
+void InitMotors();
+void ResetMotors();
 #endif
 
 

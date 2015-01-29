@@ -48,21 +48,22 @@ typedef struct ESCSettingsDef
 ESCSettingsDef ESCSettings; 
 
 //#define PROGRAM_MODE
-//#define THROTTLE_MODE
-#define NORMAL_MODE
+#define THROTTLE_MODE
+//#define NORMAL_MODE
 
 int CurrentSpeed;
 int Step = 6;
 
 
-#define ESC_HIGH_DEFAULT 180 // Note that the servo lib maxes out at 200, so any value higher is capped at 180
-#define ESC_LOW_DEFAULT 20
+#define ESC_HIGH_DEFAULT 2000 // Note that the servo lib maxes out at 200, so any value higher is capped at 180
+#define ESC_LOW_DEFAULT 700
 
 void setup()
 {
 	// Required for I/O from Serial monitor
 	Serial.begin(115200);
-	Serial.println("Setup: Serial port communication at 9600bps");
+	Serial.println("Setup: Serial port communication at 115200bps");
+
 	// Attach motors to pins
 
     Motors[0].Pin =  11;
@@ -103,10 +104,10 @@ void ReadLHSpeed()
 void SetThrottleRange()
 {
 	Serial.println("In Set Throttle Range mode");
-    
+
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.High);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.High);
 	}
 
 	Serial.println("Connect the ESC now. After connecting the ESC, you should hear \
@@ -128,7 +129,7 @@ void SetThrottleRange()
 
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.Low);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.Low);
 	}
 
 	// Wait for user input
@@ -144,7 +145,7 @@ void ProgramESC()
 
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.High);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.High);
 	}
 
 //	Serial.println("Connect the ESC now. After connecting the ESC, you should hear \
@@ -167,7 +168,7 @@ void ProgramESC()
 
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.Low);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.Low);
 	}
 
 	// After the user inputs a key stroke, set the throttle to high. This will set the value of the setting.
@@ -178,7 +179,7 @@ void ProgramESC()
 
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.High);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.High);
 	}
 
 	delay(2000);
@@ -192,7 +193,7 @@ void Run()
 {
 	for (int i = 0; i < NUMMOTORS; i++)
 	{
-	  Motors[i].Motor.write(ESCSettings.Low);
+	  Motors[i].Motor.writeMicroseconds(ESCSettings.Low);
 	}
 	Serial.println("Running ESC");
 	Serial.println("Step = ");
@@ -241,7 +242,7 @@ void Run()
 		}
 		for (int i = 0; i < NUMMOTORS; i++)
 		{
-		  Motors[i].Motor.write(CurrentSpeed);
+		  Motors[i].Motor.writeMicroseconds(CurrentSpeed);
 		}
 	}
 }
@@ -256,6 +257,6 @@ void loop()
 #elif defined PROGRAM_MODE
 	ProgramESC();
 #endif
-  while(1) { } 
+
 }
 

@@ -11,9 +11,12 @@ public:
 	PIDController();
 
 	unsigned long lastTime;
-	double Input, Output, Setpoint;
-	double Errsum, LastErr;
-	double Kp, Ki, Kd;
+	double 	Input, Output, Setpoint;
+	double 	Errsum, LastErr;
+	double 	Kp, Ki, Kd;
+	double 	TargetSetpoint;
+	double 	StepSize;
+	int 	QuadSpeed;
 
 	double Compute(double input);
 
@@ -21,7 +24,15 @@ public:
 
 	void SetSetPoint(double _setPoint);
 
+	void SetNewSetpoint(double _setPoint);
+
+	void SetSpeed(int);
+
 	double GetSetPoint();
+
+	void SetErrorSum(double val);
+
+	void SetLastError(double val);
 
 	double GetErrorSum();
 };

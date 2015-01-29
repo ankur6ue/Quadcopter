@@ -44,70 +44,70 @@ public:
 
 SignalData::SignalData()
 {
-    d_data = new PrivateData();
+    pdata = new PrivateData();
 }
 
 SignalData::~SignalData()
 {
-    delete d_data;
+    delete pdata;
 }
 
 int SignalData::size() const
 {
-    return d_data->values.size();
+    return pdata->values.size();
 }
 
 QPointF SignalData::value( int index ) const
 {
-    return d_data->values[index];
+    return pdata->values[index];
 }
 
 QRectF SignalData::boundingRect() const
 {
-    return d_data->boundingRect;
+    return pdata->boundingRect;
 }
 
 void SignalData::lock()
 {
-    d_data->lock.lockForRead();
+    pdata->lock.lockForRead();
 }
 
 void SignalData::unlock()
 {
-    d_data->lock.unlock();
+    pdata->lock.unlock();
 }
 
 void SignalData::append( const QPointF &sample )
 {
-    d_data->mutex.lock();
-    d_data->pendingValues += sample;
+    pdata->mutex.lock();
+    pdata->pendingValues += sample;
 
-    const bool isLocked = d_data->lock.tryLockForWrite();
+    const bool isLocked = pdata->lock.tryLockForWrite();
     if ( isLocked )
     {
-        const int numValues = d_data->pendingValues.size();
-        const QPointF *pendingValues = d_data->pendingValues.data();
+        const int numValues = pdata->pendingValues.size();
+        const QPointF *pendingValues = pdata->pendingValues.data();
 
         for ( int i = 0; i < numValues; i++ )
-            d_data->append( pendingValues[i] );
+            pdata->append( pendingValues[i] );
 
-        d_data->pendingValues.clear();
+        pdata->pendingValues.clear();
 
-        d_data->lock.unlock();
+        pdata->lock.unlock();
     }
 
-    d_data->mutex.unlock();
+    pdata->mutex.unlock();
 }
 
 void SignalData::clearStaleValues( double limit )
 {
-    d_data->lock.lockForWrite();
+    pdata->lock.lockForWrite();
 
-    d_data->boundingRect = QRectF( 1.0, 1.0, -2.0, -2.0 ); // invalid
+    pdata->boundingRect = QRectF( 1.0, 1.0, -2.0, -2.0 ); // invalid
 
-    const QVector<QPointF> values = d_data->values;
-    d_data->values.clear();
-    d_data->values.reserve( values.size() );
+    const QVector<QPointF> values = pdata->values;
+    pdata->values.clear();
+    pdata->values.reserve( values.size() );
 
     int index;
     for ( index = values.size() - 1; index >= 0; index-- )
@@ -117,12 +117,12 @@ void SignalData::clearStaleValues( double limit )
     }
 
     if ( index > 0 )
-        d_data->append( values[index++] );
+        pdata->append( values[index++] );
 
     while ( index < values.size() - 1 )
-        d_data->append( values[index++] );
+        pdata->append( values[index++] );
 
-    d_data->lock.unlock();
+    pdata->lock.unlock();
 }
 
 SignalData &SignalData::instance(PlotId pid, CurveId cid)

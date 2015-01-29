@@ -3,11 +3,14 @@
 #include <qwt_math.h>
 #include <math.h>
 #include "sensordataparser.h"
+#include "commanddef.h"
 #include <qlist.h>
 
 #if QT_VERSION < 0x040600
 #define qFastSin(x) ::sin(x)
 #endif
+
+#define DEGTORAD M_PI/180
 
 #define LOGBUFSIZE 200
 enum ERRORS
@@ -15,43 +18,18 @@ enum ERRORS
 	BUFFER_OVERFLOW = 1
 };
 
-
-void SensorDataParserImplCommands::Parse(char* incomingData, int packetLength)
-{
-	bPrefixFound = false;
-	if (PrefixLength == -1) return;
-	printf("%s\n", incomingData);
-	for (int i = 0; i < max(0, packetLength-PrefixLength); i++)
-	{
-		if (!strncmp(incomingData + i, Prefix, PrefixLength))
-		{
-			float val1, val2;
-			
-			if (sscanf(incomingData + i, "AT Speed %f", &val2))
-			{
-				EchoCommand* cmd = new EchoCommand("Speed", val2);
-				pSamplingThread->signalEchoCommand(cmd);
-			}
-
-			if (sscanf(incomingData + i, "AT MotorToggle %f", &val1))
-			{
-				EchoCommand* cmd = new EchoCommand("MotorToggle", val1);
-				pSamplingThread->signalEchoCommand(cmd);
-			}
-		}
-	}
-}
-
 SamplingThread::SamplingThread( QObject *parent ):
     QwtSamplingThread( parent ),
-    d_frequency( 5.0 ),
-    d_amplitude( 20.0 ), iDataLength(1500)
+    pfrequency( 5.0 ),
+    pamplitude( 20.0 ), iDataLength(1500)
 {
 	SetupSerialPort();
 	pSensorDataParser = new SensorDataParser();
 	pSensorDataParser->RegisterDataParser(new SensorDataParserImplYpr(this, "ypr", 3));
 	pSensorDataParser->RegisterDataParser(new SensorDataParserImplFusion(this, "fusion", 3));
+	pSensorDataParser->RegisterDataParser(new SensorDataParserImplPID(this, "PID", 3));
 	pSensorDataParser->RegisterDataParser(new SensorDataParserImplCommands(this));
+	pSensorDataParser->RegisterAckParser(new SensorDataParserImplAck(this));
 
 //	fp = fopen("C:\\Qt\\SensorData.txt", "w");
 }
@@ -73,35 +51,34 @@ int SamplingThread::SetupSerialPort()
 
 void SamplingThread::setFrequency( double frequency )
 {
-    d_frequency = frequency;
+    pfrequency = frequency;
 }
 
 void SamplingThread::setAmplitude( double amplitude )
 {
-    d_amplitude = amplitude;
+    pamplitude = amplitude;
 }
 
 double SamplingThread::frequency() const
 {
-    return d_frequency;
+    return pfrequency;
 }
 
 double SamplingThread::amplitude() const
 {
-    return d_amplitude;
+    return pamplitude;
 }
 
 void SamplingThread::sample( double elapsed )
 {
-    if ( d_frequency > 0.0 )
-    {
-		
+    if ( pfrequency > 0.0 )
+    {	
 		memset(cIncomingData, 0, 2000);
 		int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
 	//	printf("Bytes read: (-1 means no data available) %i\n",readResult);
 		if (bytesRead != -1)
 		{
-			pSensorDataParser->Parse(cIncomingData, bytesRead);
+			pSensorDataParser->ParseData(cIncomingData, bytesRead);
 			pSensorDataParser->Plot(elapsed);
 		}	
 
@@ -109,37 +86,149 @@ void SamplingThread::sample( double elapsed )
 		if (commandInstance->IsDirty())
 		{
 			int numChar = 0;
-			typedef struct
-			{
-				char	command[32];
-				int		numChar;
-			} CommandDef;
 
 			// Need to put the commands on the list as there could be more than one flags that were modified.
 			// For example when the motors are turned off, speed is also set to zero. 
 			QList<CommandDef*> commandList;
 			CommandDef* pcommandDef;
-			
+			int _speed;
+			int motorState;
+			bool bmotorToggle;
+			PIDFlags PIDflag;
+			float kp, ki, kd;
+
 			if (commandInstance->IsDirty(SPEED))
 			{
 				// We are only reading the shared variables, which is likely to be an atomic operation and locks are likely not required
 				// but better be safe than sorry. 
 				commandInstance->doLock();
-				int _speed = commandInstance->GetSpeed();
+				_speed = commandInstance->GetSpeed();
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef();
-				pcommandDef->numChar  = commandInstance->CreateCommand(pcommandDef->command, "Speed", (float)_speed);
+				pcommandDef = new CommandDef( "Speed", (float)_speed);
+				
 				commandList.push_back(pcommandDef);
 			}
 
 			if (commandInstance->IsDirty(MOTORTOGGLE))
 			{
 				commandInstance->doLock();
-				bool bmotorToggle = commandInstance->GetMotorToggle();
+				bmotorToggle = commandInstance->GetMotorToggle();
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef();
-				pcommandDef->numChar = commandInstance->CreateCommand(pcommandDef->command, "MotorToggle", (float)bmotorToggle);
+				pcommandDef = new CommandDef("MotorToggle", (float)bmotorToggle);
 				commandList.push_back(pcommandDef);
+			}
+				
+			if (commandInstance->IsDirty(MOTORSTATE))
+			{
+				commandInstance->doLock();
+				motorState = commandInstance->GetMotorState();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("MotorState", motorState);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(DEF_PITCHSETPOINT))
+			{
+				commandInstance->doLock();
+				double defSetPoint = commandInstance->GetDefaultPitchSetpoint()*DEGTORAD;
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("DefPitchSetPt", defSetPoint);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(DEF_ROLLSETPOINT))
+			{
+				commandInstance->doLock();
+				double defSetPoint = commandInstance->GetDefaultRollSetpoint()*DEGTORAD;
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("DefRollSetPt", defSetPoint);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(PITCHSETPOINT))
+			{
+				commandInstance->doLock();
+				double newSetPoint = commandInstance->GetPitchSetpoint()*DEGTORAD;
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("PitchSetPt", newSetPoint);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(ROLLSETPOINT))
+			{
+				commandInstance->doLock();
+				double newSetPoint = commandInstance->GetRollSetpoint()*DEGTORAD;
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("RollSetPt", newSetPoint);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(YAWSETPOINT))
+			{
+				commandInstance->doLock();
+				double newSetPoint = commandInstance->GetYawSetpoint()*DEGTORAD;
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("YawSetPt", newSetPoint);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(PIpPARAMS))
+			{
+				// Figure out which PID Parameter has been modified
+				if (commandInstance->IsPIDFlagDirty(Pitch_Kp))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetPitchKp();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Kp", kp);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Pitch_Ki))
+				{
+					commandInstance->doLock();
+					ki = commandInstance->GetPitchKi();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Ki", ki);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Pitch_Kd))
+				{
+					commandInstance->doLock();
+					kd = commandInstance->GetPitchKd();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Kd", kd);
+					commandList.push_back(pcommandDef);
+				}
+
+				// Figure out which PID Parameter has been modified
+				if (commandInstance->IsPIDFlagDirty(Yaw_Kp))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetYawKp();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Yaw_Kp", kp);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Yaw_Ki))
+				{
+					commandInstance->doLock();
+					ki = commandInstance->GetYawKi();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Yaw_Ki", ki);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Yaw_Kd))
+				{
+					commandInstance->doLock();
+					kd = commandInstance->GetYawKd();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Yaw_Kd", kd);
+					commandList.push_back(pcommandDef);
+				}
 			}
 			
 			for (int i = 0; i < commandList.length(); i++)
@@ -147,7 +236,24 @@ void SamplingThread::sample( double elapsed )
 				int numChar = commandList[i]->numChar;
 				if (numChar > 0)
 				{
-					Sp->WriteData(commandList[i]->command, numChar);
+					bool	receivedAck = false;
+					int		tryCount = 0;
+					int		numTries = 4;
+					while (!receivedAck && tryCount < numTries)
+					{
+						Sp->WriteData(commandList[i]->CommandBuffer, numChar);
+						Sleep(50);
+						receivedAck = BlockTillReply(50, commandList[i]->CommandName);
+						tryCount++;
+					}
+					if (receivedAck)
+					{
+						printf("ack received after %d tries\n", tryCount);
+					}
+					else
+					{
+						printf("command not acknowledged\n");
+					}
 				}
 				delete commandList[i];
 			}
@@ -155,12 +261,40 @@ void SamplingThread::sample( double elapsed )
     }
 }
 
+/**
+ * Waits for reply from sender or timeout before continuing
+ */
+bool SamplingThread::BlockTillReply(unsigned long timeout, char* ackCmdId)
+{
+    unsigned long time  = GetTickCount();
+    unsigned long start = time;
+    bool receivedAck    = false;
+    while( (time - start ) < timeout && !receivedAck) {
+		// wait for a few ms before checking again
+		Sleep(5);
+		time = GetTickCount();
+        receivedAck = CheckForAck(ackCmdId);
+    }
+    return receivedAck;
+}
+
+bool SamplingThread::CheckForAck(char* ackCmdId)
+{
+	memset(cIncomingData, 0, 2000); 
+	int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
+	if (bytesRead != -1)
+	{
+		return pSensorDataParser->ParseAck(cIncomingData, bytesRead, ackCmdId);
+	}
+	return false;
+}
+
 double SamplingThread::value( double timeStamp ) const
 {
-    const double period = 1.0 / d_frequency;
+    const double period = 1.0 / pfrequency;
 
     const double x = ::fmod( timeStamp, period );
-    const double v = d_amplitude * qFastSin( x / period * 2 * M_PI );
+    const double v = pamplitude * qFastSin( x / period * 2 * M_PI );
 
     return v;
 }
