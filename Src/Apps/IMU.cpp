@@ -18,7 +18,11 @@
 #include "IMU.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "quadcopter.h"
+#include "SoftwareSerial.h"
+#include "SerialDef.h"
+#include "ErrorsDef.h"
 
+extern ExceptionMgr cExceptionMgr;
 extern volatile bool MPUInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
 void DMPDataReady()
@@ -161,66 +165,66 @@ void IMU::Init()
 
 bool IMU::IntegrateGyro()
 {
-	  // Set the full scale range of the gyro
-	        uint8_t FS_SEL = 0;
-	        accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
+	// Set the full scale range of the gyro
+	uint8_t FS_SEL = 0;
+	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ); //Set Starting angles
 
-	        //mpu.setFullScaleGyroRange(FS_SEL);
+	//mpu.setFullScaleGyroRange(FS_SEL);
 
-	        // get default full scale value of gyro - may have changed from default
-	        // function call returns values between 0 and 3
-	        uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
-	        SERIAL.print("FS_SEL = ");
-	        SERIAL.println(READ_FS_SEL);
-	        GYRO_FACTOR = 131.0/(FS_SEL + 1);
+	// get default full scale value of gyro - may have changed from default
+	// function call returns values between 0 and 3
+	uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
+	SERIAL.print("FS_SEL = ");
+	SERIAL.println(READ_FS_SEL);
+	GYRO_FACTOR = 131.0 / (FS_SEL + 1);
 
+	// get default full scale value of accelerometer - may not be default value.
+	// Accelerometer scale factor doesn't reall matter as it divides out
+	uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
+	SERIAL.print("AFS_SEL = ");
+	SERIAL.println(READ_AFS_SEL);
+	//ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
 
-	        // get default full scale value of accelerometer - may not be default value.
-	        // Accelerometer scale factor doesn't reall matter as it divides out
-	        uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
-	        SERIAL.print("AFS_SEL = ");
-	        SERIAL.println(READ_AFS_SEL);
-	        //ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
+	// Remove offsets and scale gyro data
+	gyroX = (gyroX - gXOffset) / GYRO_FACTOR;
+	gyroY = (gyroY - gYOffset) / GYRO_FACTOR;
+	gyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
+	accX = accX; // - base_x_accel;
+	accY = accY; // - base_y_accel;
+	accZ = accZ; // - base_z_accel;
 
+	const double Q_angle = 0.001;
 
-	        // Remove offsets and scale gyro data
-	        gyroX = (gyroX - gXOffset)/GYRO_FACTOR;
-	        gyroY = (gyroY - gYOffset)/GYRO_FACTOR;
-	        gyroZ = (gyroZ - gZOffset)/GYRO_FACTOR;
-	        accX = accX; // - base_x_accel;
-	        accY = accY; // - base_y_accel;
-	        accZ = accZ; // - base_z_accel;
+	const double Q_gyroBias = 0.003;
 
-	        const double Q_angle = 0.001;
+	const double R_angle = 0.03;
 
-	        const double Q_gyroBias = 0.003;
+	float accelAngleY = atan(-accX / accZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	float accelAngleX = atan(accY / accZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	float accelAngleZ = 0;
+	unsigned long now = millis();
+	// Compute the (filtered) gyro angles
+	float dt = (now - Before) / 1000.0;
+	float gyroAngleX = gyroX * dt + fLastGyroAngleX;
+	float gyroAngleY = gyroY * dt + fLastGyroAngleY;
+	float gyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
 
-	        const double R_angle = 0.03;
+	// Compute the drifting gyro angles
+	float unfilteredGyroAngleX = gyroX * dt + fLastGyroAngleX;
+	float unfilteredGyroAngleY = gyroY * dt + fLastGyroAngleY;
+	float unfilteredGyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
 
-	        float accelAngleY = atan(-accX/accZ)*RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
-	        float accelAngleX = atan(accY/accZ)*RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
-	        float accelAngleZ = 0;
-	        unsigned long now = millis();
-	        // Compute the (filtered) gyro angles
-	        float dt =(now - Before)/1000.0;
-	        float gyroAngleX = gyroX*dt + fLastGyroAngleX;
-	        float gyroAngleY = gyroY*dt + fLastGyroAngleY;
-	        float gyroAngleZ = gyroZ*dt + fLastGyroAngleZ;
-
-	        // Compute the drifting gyro angles
-	        float unfilteredGyroAngleX = gyroX*dt + fLastGyroAngleX;
-	        float unfilteredGyroAngleY = gyroY*dt + fLastGyroAngleY;
-	        float unfilteredGyroAngleZ = gyroZ*dt + fLastGyroAngleZ;
-
-	        // Apply the complementary filter to figure out the change in angle - choice of alpha is
-	        // estimated now.  Alpha depends on the sampling rate...
-	        const float alpha = 0.96;
-	        float angleX = alpha*gyroAngleX + (1.0 - alpha)*accelAngleX;
-	        float angleY = alpha*gyroAngleY + (1.0 - alpha)*accelAngleY;
-	        float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
-	        fLastGyroAngleX = angleX; fLastGyroAngleY = angleY; fLastGyroAngleZ = angleZ;
-	        Before = now;
-	        return true;
+	// Apply the complementary filter to figure out the change in angle - choice of alpha is
+	// estimated now.  Alpha depends on the sampling rate...
+	const float alpha = 0.96;
+	float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
+	float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
+	float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
+	fLastGyroAngleX = angleX;
+	fLastGyroAngleY = angleY;
+	fLastGyroAngleZ = angleZ;
+	Before = now;
+	return true;
 }
 
 bool IMU::DMPInit()
@@ -298,10 +302,30 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 			yaw = YPR[0];
 			pitch = YPR[1];
 			roll = YPR[2];
+			// TODO: perhaps return false if DoSanityCheck fails
+			DoSanityCheck(yaw, pitch, roll);
 			return true;
 		}
 	}
 	return false;
+}
+
+bool IMU::DoSanityCheck(float& yaw, float& pitch, float& roll)
+{
+	// The MPU6050 sometimes gives out a burst of bad values. Hopefully this check will detect if bad
+	// values are received and prevent crazy orientation data to be sent to the attitude control algorithm
+	// We check for bad values by asserting that the current measurements shouldn't differ from the previous
+	// measurements by
+	if (fabs(LastYaw - yaw) > 0.2 * fabs(LastYaw)
+			|| fabs(LastPitch - pitch) > 0.2 * fabs(LastPitch)
+			|| fabs(LastRoll - roll) > 0.2 * fabs(LastRoll))
+	{
+		cExceptionMgr.SetException(BAD_MPU_DATA);
+		LastYaw = yaw; LastPitch = pitch; LastRoll = roll;
+		return false;
+	}
+	LastYaw = yaw; LastPitch = pitch; LastRoll = roll;
+	return true;
 }
 
 bool IMU::processAngles(float angles[],float rates[])

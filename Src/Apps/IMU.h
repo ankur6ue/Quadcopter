@@ -57,6 +57,8 @@ class IMU
   bool GetMotion6(float angles[]);
   bool IntegrateGyro();
   bool GetYPR(float& yaw, float& pitch, float& roll);
+  bool DoSanityCheck(float& yaw, float& pitch, float& roll);
+
   int gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
   float GYRO_FACTOR;
@@ -81,7 +83,9 @@ class IMU
 	float 	gyroXangle, gyroYangle, gyroZangle; // Angle calculate using the gyro
 	float 	kalAngleX, kalAngleY, kalAngleZ; // Calculate the angle using a Kalman filter
 	float 	compAngleX, compAngleY, compAngleX0;
-
+	float 	LastYaw;
+	float 	LastPitch;
+	float	LastRoll;
 	// AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
 	// AD0 high = 0x69
 	MPU6050* accelgyro; //MPU6050 accelgyro(0x69); // <-- use for AD0 high

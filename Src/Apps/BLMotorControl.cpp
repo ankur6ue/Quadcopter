@@ -31,7 +31,11 @@ the ESC will see random values on the PWM pin.
 
 #include "Utils.h"
 #include "BLMotorControl.h"
+#include "QuadCopter.h"
+#include "ErrorsDef.h"
 
+extern ExceptionMgr cExceptionMgr;
+extern MotorCtrl	cMotorCtrl;
 
 BLMotor MotorFR(11);
 BLMotor MotorBL(10);
@@ -40,7 +44,37 @@ BLMotor MotorFL(6);
 
 ESCSettingsDef ESCSettings(ESC_LOW_DEFAULT, ESC_HIGH_DEFAULT);
 
-void InitMotors()
+MotorCtrl::MotorCtrl(int frequency, const char* name): Task(frequency, name) {};
+
+unsigned long MotorCtrl::Run()
+{
+	if (cExceptionMgr.IsCriticalException())
+	{
+	// Check for exceptions
+		long e = cExceptionMgr.GetException();
+
+		switch (e)
+		{
+		case BAD_MPU_DATA:
+		case NO_BEACON_SIGNAL:
+		case EXCESSIVE_PID_OUTPUT:
+			// TODO: Implement proper shutdown mode.
+			cMotorCtrl.ResetMotors();
+		}
+	}
+	else // No exceptions, run the motors
+	{
+		if (QuadState.bMotorToggle)
+		{
+			MotorFL.Run(QuadState.Speed - QuadState.PID_Roll  + QuadState.PID_Yaw);
+			MotorBL.Run(QuadState.Speed + QuadState.PID_Pitch - QuadState.PID_Yaw);
+			MotorFR.Run(QuadState.Speed - QuadState.PID_Pitch - QuadState.PID_Yaw);
+			MotorBR.Run(QuadState.Speed + QuadState.PID_Roll  + QuadState.PID_Yaw);
+		}
+	}
+}
+
+void MotorCtrl::InitMotors()
 {
 	MotorFR.Init();
 	MotorBR.Init();
@@ -48,14 +82,13 @@ void InitMotors()
 	MotorBL.Init();
 }
 
-void ResetMotors()
+void MotorCtrl::ResetMotors()
 {
 	MotorFR.Reset();
 	MotorBR.Reset();
 	MotorFL.Reset();
 	MotorBL.Reset();
 }
-
 BLMotor::BLMotor(int pin)
 {
 	// Required for I/O from Serial monitor
@@ -82,14 +115,14 @@ void BLMotor::Run(int _speed)
 {
 	if (bIsRunning)
 	{
-		int speed = constrain_i(_speed, ESCSettings.Low, 90);
+		int speed = constrain_i(_speed, ESCSettings.Low, 1500);
 		Speed = speed;
 		Motor.write(speed);
 	}
 	else
 	{
 		Speed = 0;
-		Motor.write(0);
+		Motor.write(ESCSettings.Low);
 	}
 }
 

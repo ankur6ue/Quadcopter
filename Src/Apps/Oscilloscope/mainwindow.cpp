@@ -21,13 +21,16 @@ void MainWindow::ReadPIDParams(PIDParamsDef& yparams, PIDParamsDef& pparams, PID
 	{
 		fscanf(fp, "YawPIDParams %f %f %f\n", &yparams.fKp, &yparams.fKi, &yparams.fKd); 
 		fscanf(fp, "PitchPIDParams %f %f %f\n", &pparams.fKp, &pparams.fKi, &pparams.fKd); 
-		fscanf(fp, "RollPIDParams %f %f %f", &rparams.fKp, &rparams.fKi, &rparams.fKd); 
+		fscanf(fp, "RollPIDParams %f %f %f\n", &rparams.fKp, &rparams.fKi, &rparams.fKd); 
+		fscanf(fp, "DefaultRollSetPoint %d\n", &DefaultRollSetPoint); 
+		fscanf(fp, "DefaultPitchSetPoint %d\n", &DefaultPitchSetPoint); 
 	}
 	else
 	{
-		yparams.fKp = 0; yparams.fKi = 0; yparams.fKd = 0;
-		pparams.fKp = 2.5; pparams.fKi = 0; pparams.fKd = 1.3;
-		rparams.fKp = 2.5; rparams.fKi = 0; rparams.fKd = 1.3;
+		yparams.fKp = 12; yparams.fKi = 0; yparams.fKd = 5;
+		pparams.fKp = 24; pparams.fKi = 3; pparams.fKd = 10;
+		rparams.fKp = 24; rparams.fKi = 3; rparams.fKd = 10;
+		DefaultPitchSetPoint = -4; DefaultRollSetPoint = -5;
 	}
 }
 
@@ -49,8 +52,6 @@ MainWindow::MainWindow( QWidget *parent ):
 {
     const double intervalLength = 10.0; // seconds
 	pamplitude = 150;
-	DefaultPitchSetPoint = 0;
-	DefaultRollSetPoint = 0;
 	// Initialize the Joystick
 	SetupCtrlInput();
     y_plot = new Plot( this, yaw );
@@ -115,13 +116,13 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	ReadPIDParams(YawPIDParams, PitchPIDParams, RollPIDParams);
 
-	pPitchKp = new WheelBox( "Kp", 0, 5, 0.1, this );
+	pPitchKp = new WheelBox( "Kp", 0, 30, 1, this );
     pPitchKp->setValue( PitchPIDParams.fKp );
 
-	pPitchKi = new WheelBox( "Ki", 0, 1, 0.01, this );
+	pPitchKi = new WheelBox( "Ki", 0, 3, 0.05, this );
     pPitchKi->setValue( PitchPIDParams.fKi );
 
-	pPitchKd = new WheelBox( "Kd", 0, 8, 0.05, this );
+	pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
     pPitchKd->setValue( PitchPIDParams.fKd );
 
 	pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
@@ -224,6 +225,8 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	pPitchSetPtWheel = new WheelBox( "Pitch Setpoint", -25, 25, 1, this );
 	pRollSetPtWheel = new WheelBox( "Roll Setpoint", -25, 25, 1, this );
+	pPitchSetPtWheel->setValue(DefaultPitchSetPoint);
+	pRollSetPtWheel->setValue(DefaultRollSetPoint);
 
 	vLayout3b->addWidget( pPitchSetPtWheel, 0, 0, 1, 1, Qt::AlignLeft);
 	vLayout3b->addWidget( pRollSetPtWheel, 1, 0, 1, 1, Qt::AlignLeft);
@@ -258,7 +261,7 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	QGroupBox* gpBox2 = new QGroupBox("Quadcopter Power Control", this);
 
-	pSpeedWheel = new WheelBox( "Speed", 0.0, 80.0, 1, this );
+	pSpeedWheel = new WheelBox( "Speed", 0.0, 1500.0, 2, this );
 	pSpeedWheel->setContentsMargins(0,0,0,0);
     pSpeedWheel->setValue( 0.0 );
 

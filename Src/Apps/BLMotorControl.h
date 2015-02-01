@@ -30,7 +30,7 @@ the ESC will see random values on the PWM pin.
 // Need the Servo library
 #include <Arduino.h>
 #include <Servo.h>
-
+#include "Scheduler.h"
 #define NUMMOTORS 4
 
 enum MotorId
@@ -41,8 +41,9 @@ enum MotorId
 	FL = 8
 };
 
-#define ESC_HIGH_DEFAULT 180 // Note that the servo lib maxes out at 180, so any value higher is capped at 180
-#define ESC_LOW_DEFAULT 20
+
+#define ESC_HIGH_DEFAULT 2000
+#define ESC_LOW_DEFAULT 700
 //#define ESC_HIGH_DEFAULT MAX_PULSE_WIDTH // Note that the servo lib maxes out at 200, so any value higher is capped at 180
 //#define ESC_LOW_DEFAULT MIN_PULSE_WIDTH
 // Stores the settings for all ESC. This can be made specific to each ESC, but that's not needed
@@ -70,8 +71,6 @@ public:
 	bool	bIsRunning;
 };
 
-
-
 extern BLMotor MotorFR;
 extern BLMotor MotorBL;
 extern BLMotor MotorBR;
@@ -79,6 +78,16 @@ extern BLMotor MotorFL;
 
 void InitMotors();
 void ResetMotors();
+
+class MotorCtrl: public Task
+{
+public:
+	MotorCtrl(int frequency, const char* name);
+	unsigned long	Run();
+	void InitMotors();
+	void ResetMotors();
+};
+
 #endif
 
 

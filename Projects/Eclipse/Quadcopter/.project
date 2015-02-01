@@ -27,6 +27,16 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>AttitudePIDCtrl.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AttitudePIDCtrl.cpp</locationURI>
+		</link>
+		<link>
+			<name>AttitudePIDCtrl.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AttitudePIDCtrl.h</locationURI>
+		</link>
+		<link>
 			<name>BLMotorControl.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/BLMotorControl.cpp</locationURI>
@@ -42,9 +52,24 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Callbacks.h</locationURI>
 		</link>
 		<link>
+			<name>CommandCtrl.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/CommandCtrl.cpp</locationURI>
+		</link>
+		<link>
 			<name>CommandCtrl.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/CommandCtrl.h</locationURI>
+		</link>
+		<link>
+			<name>ErrorsDef.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/ErrorsDef.cpp</locationURI>
+		</link>
+		<link>
+			<name>ErrorsDef.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/ErrorsDef.h</locationURI>
 		</link>
 		<link>
 			<name>Filter.cpp</name>
@@ -105,6 +130,26 @@
 			<name>Quadcopter.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Quadcopter.h</locationURI>
+		</link>
+		<link>
+			<name>RatePIDCtrl.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/RatePIDCtrl.cpp</locationURI>
+		</link>
+		<link>
+			<name>RatePIDCtrl.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/RatePIDCtrl.h</locationURI>
+		</link>
+		<link>
+			<name>Scheduler.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Scheduler.cpp</locationURI>
+		</link>
+		<link>
+			<name>Scheduler.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Scheduler.h</locationURI>
 		</link>
 		<link>
 			<name>SerialDef.h</name>

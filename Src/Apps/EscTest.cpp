@@ -48,8 +48,8 @@ typedef struct ESCSettingsDef
 ESCSettingsDef ESCSettings; 
 
 //#define PROGRAM_MODE
-#define THROTTLE_MODE
-//#define NORMAL_MODE
+//#define THROTTLE_MODE
+#define NORMAL_MODE
 
 int CurrentSpeed;
 int Step = 6;

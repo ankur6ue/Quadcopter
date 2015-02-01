@@ -18,7 +18,7 @@ public:
 	double 	StepSize;
 	int 	QuadSpeed;
 
-	double Compute(double input);
+	virtual double Compute(double input){ return 0; };
 
 	void SetTunings(double Kp, double Ki, double Kd);
 
