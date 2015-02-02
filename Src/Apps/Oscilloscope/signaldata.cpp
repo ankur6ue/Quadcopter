@@ -146,4 +146,6 @@ SignalData &SignalData::instance(PlotId pid, CurveId cid)
 		return valueVectorR1;
 	if (pid == roll && cid == 1)
 		return valueVectorR2;
+	// Default value, should never have to actually return this.
+	return valueVectorY1;
 }

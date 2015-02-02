@@ -5,6 +5,7 @@
 #include "echocommanddef.h"
 
 class SensorDataParser;
+class CommandDef;
 
 class SamplingThread: public QwtSamplingThread
 {
@@ -18,7 +19,9 @@ public:
     double amplitude() const;
 	bool BlockTillReply(unsigned long timeout, char* ackCmdId);
 	bool CheckForAck(char* ackCmdId);
-
+	void SendBeacon();
+	void SendCommandAndWaitAck(CommandDef* pcommandDef);
+	
 Q_SIGNALS:
 	void signalEchoCommand(EchoCommand*);
 
@@ -31,8 +34,7 @@ protected:
 /*	virtual void run(); */
 private:
     virtual double value( double timeStamp ) const;
-
-    double pfrequency;
+	double pfrequency;
     double pamplitude;
 	char cIncomingData[2000];
 	unsigned int iDataLength;

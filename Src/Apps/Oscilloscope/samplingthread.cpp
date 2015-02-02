@@ -83,6 +83,10 @@ void SamplingThread::sample( double elapsed )
 		}	
 
 		UserCommands* commandInstance = &(UserCommands::Instance());
+		if (commandInstance->IsSendBeacon())
+		{
+			SendBeacon();
+		}
 		if (commandInstance->IsDirty())
 		{
 			int numChar = 0;
@@ -236,29 +240,48 @@ void SamplingThread::sample( double elapsed )
 				int numChar = commandList[i]->numChar;
 				if (numChar > 0)
 				{
-					bool	receivedAck = false;
-					int		tryCount = 0;
-					int		numTries = 4;
-					while (!receivedAck && tryCount < numTries)
-					{
-						Sp->WriteData(commandList[i]->CommandBuffer, numChar);
-						Sleep(50);
-						receivedAck = BlockTillReply(50, commandList[i]->CommandName);
-						tryCount++;
-					}
-					if (receivedAck)
-					{
-						printf("ack received after %d tries\n", tryCount);
-					}
-					else
-					{
-						printf("command not acknowledged\n");
-					}
+					SendCommandAndWaitAck(commandList[i]);
 				}
 				delete commandList[i];
 			}
 		}
     }
+}
+
+void SamplingThread::SendCommandAndWaitAck(CommandDef* pcommandDef)
+{
+	bool	receivedAck = false;
+	int		tryCount = 0;
+	int		numTries = 4;
+	int		numChar = pcommandDef->numChar;
+	while (!receivedAck && tryCount < numTries)
+	{
+		Sp->WriteData(pcommandDef->CommandBuffer, numChar);
+		Sleep(50);
+		receivedAck = BlockTillReply(50, pcommandDef->CommandName);
+		tryCount++;
+	}
+	if (receivedAck)
+	{
+		printf("ack received after %d tries\n", tryCount);
+	}
+	else
+	{
+		printf("command not acknowledged\n");
+	}
+}
+
+void SamplingThread::SendBeacon()
+{
+	static unsigned long now = 0;
+	static unsigned long before = 0;
+	CommandDef commandDef("Beacon", 0);
+	now = GetTickCount();
+	if ((now - before) > 500)
+	{
+		SendCommandAndWaitAck(&commandDef);
+		before = now;
+	}
 }
 
 /**

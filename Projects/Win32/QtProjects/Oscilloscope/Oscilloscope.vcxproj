@@ -21,6 +21,7 @@
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\samplingthread.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\sensordataparser.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\signaldata.cpp" />
+    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\UIPanelImpl.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\wheelbox.cpp" />
     <ClCompile Include="..\..\..\..\Src\Tools\ComPortReader\Serial.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_joystick.cpp">

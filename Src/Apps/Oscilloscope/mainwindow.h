@@ -62,6 +62,13 @@ public:
 	void	ResetSetPoint();
 	// To set up the thread that runs the game controller input
 	void	SetupCtrlInput();
+	// Create different UI windows and manage layouts
+	void CreatePlots();
+	void CreatePlotControls();
+	void CreatePIDControls();
+	void CreateQuadStatePanel();
+	void CreateQuadControlPanel();
+	void ManageLayout();
 
 Q_SIGNALS:
     void amplitudeChanged( double );
@@ -92,7 +99,7 @@ public Q_SLOTS:
 	void motorToggleClicked();
 	// Handle game controller axis movement
 	void AxisMoved(long, long, long, int);
-
+	
 private:
 
 	// Widget pointers. 

@@ -50,195 +50,9 @@ void MainWindow::SetupCtrlInput()
 MainWindow::MainWindow( QWidget *parent ):
     QWidget( parent )
 {
-    const double intervalLength = 10.0; // seconds
-	pamplitude = 150;
 	// Initialize the Joystick
 	SetupCtrlInput();
-    y_plot = new Plot( this, yaw );
-//	QwtLegend* plegend = new QwtLegend();
-//	plegend->setWindowTitle("Legend");
-//	y_plot->insertLegend(plegend);
-
-    y_plot->setIntervalLength( intervalLength );
-//	y_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	y_plot->setMaximumSize(600, 300);
-	y_plot->setAxisScale( QwtPlot::yLeft, -pamplitude, pamplitude);
-	y_plot->setTitle("Yaw");
-
-	p_plot = new Plot( this, pitch );
-    p_plot->setIntervalLength( intervalLength );
-//	p_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	p_plot->setMaximumSize(600, 300);
-	p_plot->setAxisScale( QwtPlot::yLeft, -pamplitude, pamplitude);
-	p_plot->setTitle("Pitch");
-
-	r_plot = new Plot( this, roll );
-    r_plot->setIntervalLength( intervalLength );
-//	r_plot->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	r_plot->setMaximumSize(600, 300);
-	r_plot->setAxisScale( QwtPlot::yLeft, -pamplitude, pamplitude);
-	r_plot->setTitle("Roll");
-
-	QGroupBox* gpBox1 = new QGroupBox("Plot Parameters", this);
-
-    pAmplitudeKnob = new Knob( "Amplitude", 0.0, 200.0, this );
-    pAmplitudeKnob->setValue( 100.0 );
-
-    pIntervalWheel = new WheelBox( "Displayed [s]", 10.0, 100.0, 1.0, this );
-//	pIntervalWheel->setFixedSize(200, 100);
-    pIntervalWheel->setValue( intervalLength );
-
-	pTimerWheel = new WheelBox( "Sample Interval [ms]", 0.0, 50.0, 1, this );
-    pTimerWheel->setValue( 20.0 );
-
-	QPalette *palette = new QPalette();
-	palette->setColor(QPalette::Text,Qt::Key_Green);
-
-	QPalette* palette2 = new QPalette();
-	palette2->setColor(QPalette::ButtonText, Qt::Key_Green);
-	QVBoxLayout* vLayout1 = new QVBoxLayout();
-	QVBoxLayout* vLayout1a = new QVBoxLayout();
-	gpBox1->setLayout(vLayout1a);
-//	vLayout1a->setContentsMargins(0,0,0,50);
-//	vLayout1a->setSpacing(0);
-//	vLayout1->setMargin(0);
-
-    vLayout1a->addWidget( pIntervalWheel, 0, Qt::AlignHCenter );
-    vLayout1a->addWidget( pTimerWheel, 0, Qt::AlignHCenter );
-    vLayout1a->addWidget( pAmplitudeKnob, 0, Qt::AlignHCenter );
-
-	// Quadcopter PID Control Parameters
-
-	QGroupBox* gpBox3 = new QGroupBox("Quadcopter PID Control", this);
-	QGridLayout* vLayout1c = new QGridLayout();
-	vLayout1c->setSpacing(0);
-	vLayout1c->setMargin(0);
-
 	ReadPIDParams(YawPIDParams, PitchPIDParams, RollPIDParams);
-
-	pPitchKp = new WheelBox( "Kp", 0, 30, 1, this );
-    pPitchKp->setValue( PitchPIDParams.fKp );
-
-	pPitchKi = new WheelBox( "Ki", 0, 3, 0.05, this );
-    pPitchKi->setValue( PitchPIDParams.fKi );
-
-	pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
-    pPitchKd->setValue( PitchPIDParams.fKd );
-
-	pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
-    pYawKp->setValue( YawPIDParams.fKp );
-
-	pYawKi = new WheelBox( "Yaw_Ki", 0, 1, 0.01, this );
-    pYawKi->setValue( YawPIDParams.fKi );
-
-	pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.05, this );
-    pYawKd->setValue( YawPIDParams.fKd );
-
-	vLayout1c->addWidget (pPitchKp, 0, 0, 1, 1, Qt::AlignCenter);
-	vLayout1c->addWidget (pPitchKi, 0, 1, 1, 1, Qt::AlignCenter);
-	vLayout1c->addWidget (pPitchKd, 0, 2, 1, 1, Qt::AlignCenter);
-	vLayout1c->addWidget (pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
-	vLayout1c->addWidget (pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
-	vLayout1c->addWidget (pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
-
-	gpBox3->setLayout(vLayout1c);
-
-	// UI elements representing Quadcopter state
-
-	QGroupBox* gpBox4 = new QGroupBox("Quadcopter State", this);
-
-	QLabel* pQuadSpeedLabel = new QLabel("QuadSpeed", this);
-	pQuadSpeed = new QLineEdit(this);
-	pQuadSpeed->setAlignment(Qt::AlignLeft);
-	pQuadSpeed->setPalette(*palette);
-
-	QLabel* pQuadPowerLabel = new QLabel("QuadPower", this);
-	pQuadPower = new QLineEdit(this);
-	pQuadPower->setAlignment(Qt::AlignLeft);
-	pQuadPower->setPalette(*palette);
-
-	QLabel* pQuadPLabel = new QLabel("Pitch", this);
-	QLabel* pQuadRLabel = new QLabel("Roll", this);
-	QLabel* pQuadYLabel = new QLabel("Yaw", this);
-
-	QLabel* pQuadKiLabel = new QLabel("Ki", this);
-	QLabel* pQuadKpLabel = new QLabel("Kp", this);
-	QLabel* pQuadKdLabel = new QLabel("Kd", this);
-
-	pQuadPKi = new QLineEdit(this);	pQuadPKi->setAlignment(Qt::AlignLeft); pQuadPKi->setPalette(*palette); 
-	pQuadPKp = new QLineEdit(this);	pQuadPKp->setAlignment(Qt::AlignLeft); pQuadPKp->setPalette(*palette); 
-	pQuadPKd = new QLineEdit(this);	pQuadPKd->setAlignment(Qt::AlignLeft);	pQuadPKd->setPalette(*palette);
-
-	pQuadRKi = new QLineEdit(this);	pQuadRKi->setAlignment(Qt::AlignLeft); pQuadRKi->setPalette(*palette); 
-	pQuadRKp = new QLineEdit(this);	pQuadRKp->setAlignment(Qt::AlignLeft); pQuadRKp->setPalette(*palette); 
-	pQuadRKd = new QLineEdit(this);	pQuadRKd->setAlignment(Qt::AlignLeft);	pQuadRKd->setPalette(*palette);
-
-	pQuadYKi = new QLineEdit(this);	pQuadYKi->setAlignment(Qt::AlignLeft); pQuadYKi->setPalette(*palette); 
-	pQuadYKp = new QLineEdit(this);	pQuadYKp->setAlignment(Qt::AlignLeft); pQuadYKp->setPalette(*palette); 
-	pQuadYKd = new QLineEdit(this);	pQuadYKd->setAlignment(Qt::AlignLeft);	pQuadYKd->setPalette(*palette);
-	
-	QGridLayout* vLayout1d = new QGridLayout();
-	vLayout1d->setSpacing(0);
-	vLayout1d->setMargin(0);
-	vLayout1d->setContentsMargins(0,0,0,50);
-	vLayout1d->addWidget( pQuadSpeedLabel, 0, 0, 1, 2, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadSpeed, 0, 2, 1, 2, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadPowerLabel, 1, 0, 1, 2, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadPower, 1, 2, 1, 2, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadPLabel, 2, 1, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadRLabel, 2, 2, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadYLabel, 2, 3, 1, 1, Qt::AlignLeft);
-
-	vLayout1d->addWidget( pQuadKpLabel, 3, 0, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadKiLabel, 4, 0, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadKdLabel, 5, 0, 1, 1, Qt::AlignLeft);
-
-	vLayout1d->addWidget( pQuadPKp, 3, 1, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadRKp, 3, 2, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadYKp, 3, 3, 1, 1, Qt::AlignLeft);
-
-	vLayout1d->addWidget( pQuadPKi, 4, 1, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadRKi, 4, 2, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadYKi, 4, 3, 1, 1, Qt::AlignLeft);
-
-	vLayout1d->addWidget( pQuadPKd, 5, 1, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadRKd, 5, 2, 1, 1, Qt::AlignLeft);
-	vLayout1d->addWidget( pQuadYKd, 5, 3, 1, 1, Qt::AlignLeft);
-	
-	gpBox4->setLayout(vLayout1d);
-
-	vLayout1->addWidget(gpBox1);
-	vLayout1->addWidget(gpBox3);
-	vLayout1->addWidget(gpBox4);
-	//vLayout1->addLayout(vLayout1c, 0);
-
-	QVBoxLayout* vLayout2 = new QVBoxLayout();
-	vLayout2->addWidget( y_plot, 4);
-	vLayout2->addWidget( p_plot, 4);
-	vLayout2->addWidget( r_plot, 4);
-
-	// Groubox for the Pitch/Yaw Control
-
-	QGroupBox* gpBox6= new QGroupBox("Roll/Pitch SetPoints", this);
-	QGridLayout* vLayout3b = new QGridLayout();
-	gpBox6->setLayout(vLayout3b);
-
-	pPitchSetPtWheel = new WheelBox( "Pitch Setpoint", -25, 25, 1, this );
-	pRollSetPtWheel = new WheelBox( "Roll Setpoint", -25, 25, 1, this );
-	pPitchSetPtWheel->setValue(DefaultPitchSetPoint);
-	pRollSetPtWheel->setValue(DefaultRollSetPoint);
-
-	vLayout3b->addWidget( pPitchSetPtWheel, 0, 0, 1, 1, Qt::AlignLeft);
-	vLayout3b->addWidget( pRollSetPtWheel, 1, 0, 1, 1, Qt::AlignLeft);
-
-	QVBoxLayout* vLayout3 = new QVBoxLayout();
-	QGroupBox* gpBox5 = new QGroupBox("Pitch/Roll Control", this);
-	QGridLayout* vLayout3a = new QGridLayout();
-
-	pPitchCtrlWheel	= new WheelBox( "Pitch Ctrl", -PITCH_CTRL_RANGE, PITCH_CTRL_RANGE, 1, this );
-	pRollCtrlWheel	= new WheelBox( "Roll Ctrl", -ROLL_CTRL_RANGE, ROLL_CTRL_RANGE, 1, this );
-	pYawCtrlWheel	= new WheelBox( "Yaw Ctrl", -YAW_CTRL_RANGE, YAW_CTRL_RANGE, 1, this );
-
 	/*
 	pArrowPad = new ArrowPadDef(this);
 	pArrowPad->pButtonUp = new QPushButton("Up", this);
@@ -251,51 +65,12 @@ MainWindow::MainWindow( QWidget *parent ):
 	vLayout3a->addWidget( pArrowPad->pButtonRight, 1, 2, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pArrowPad->pButtonDown, 2, 1, 1, 1, Qt::AlignLeft);
 	*/
-	vLayout3a->addWidget( pRollCtrlWheel, 0, 0, 1, 1, Qt::AlignLeft);
-	vLayout3a->addWidget( pPitchCtrlWheel, 1, 0, 1, 1, Qt::AlignLeft);
-	vLayout3a->addWidget( pYawCtrlWheel, 2, 0, 1, 1, Qt::AlignLeft);
-
-	gpBox5->setLayout(vLayout3a);
-
-	// User inputs to the quadcopter
-
-	QGroupBox* gpBox2 = new QGroupBox("Quadcopter Power Control", this);
-
-	pSpeedWheel = new WheelBox( "Speed", 0.0, 1500.0, 2, this );
-	pSpeedWheel->setContentsMargins(0,0,0,0);
-    pSpeedWheel->setValue( 0.0 );
-
-	pMotorToggle = new QPushButton("Off", this);
-	pMotorToggle->setCheckable(true);
-	pMotorToggle->setPalette(*palette2);
-	pMotorToggle->setFixedSize(100, 50);
-	pMotorToggle->setContentsMargins(0,0,0,0);
-
-	bMotorToggle = false;
-
-	pFR = new QCheckBox("FR", this);
-	pBR = new QCheckBox("BR", this);
-	pFL = new QCheckBox("FL", this);
-	pBL = new QCheckBox("BL", this);
-
-	QGridLayout* vLayout3c = new QGridLayout();
-
-	vLayout3c->addWidget (pFR, 2, 0, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pFL, 2, 1, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pBR, 3, 0, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pBL, 3, 1, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget( pSpeedWheel, 0, 0, 1, 2, Qt::AlignHCenter);
-	vLayout3c->addWidget (pMotorToggle, 1, 0, 1, 2, Qt::AlignHCenter);
-	
-	gpBox2->setLayout(vLayout3c);
-	vLayout3->addWidget(gpBox5, Qt::AlignTop);
-	vLayout3->addWidget(gpBox6, Qt::AlignTop);
-	vLayout3->addWidget(gpBox2, Qt::AlignTop);
-	
-    QHBoxLayout *layout = new QHBoxLayout( this );
-	layout->addLayout( vLayout2 );
-    layout->addLayout( vLayout1 );
-	layout->addLayout( vLayout3);
+	CreatePlots();
+	CreatePlotControls();
+	CreatePIDControls();
+	CreateQuadStatePanel();
+	CreateQuadControlPanel();
+	ManageLayout();
 
     connect( pAmplitudeKnob, SIGNAL( valueChanged( double ) ),
         SIGNAL( amplitudeChanged( double ) ) );
@@ -497,6 +272,7 @@ void MainWindow::motorToggleClicked()
 		pBL->setCheckState(Qt::Unchecked);
 		pFR->setCheckState(Qt::Unchecked);
 		pBR->setCheckState(Qt::Unchecked);
+		UserCommands::Instance().ClearSendBeaconFlag();
 	//	pSpeedWheel->valueChanged(0);
 	}
 
@@ -509,14 +285,14 @@ void MainWindow::motorToggleClicked()
 		UserCommands::Instance().SetYawKi(YawPIDParams.fKi);
 		UserCommands::Instance().SetYawKp(YawPIDParams.fKp);
 		UserCommands::Instance().SetYawKd(YawPIDParams.fKd);
+		
+		UserCommands::Instance().SetSendBeaconFlag();
 		ResetSetPoint();
 		pFL->setCheckState(Qt::Checked);
 		pBL->setCheckState(Qt::Checked);
 		pFR->setCheckState(Qt::Checked);
 		pBR->setCheckState(Qt::Checked);
 	}
-
-	
 	UserCommands::Instance().ToggleMotors(bMotorToggle);
 }
 
