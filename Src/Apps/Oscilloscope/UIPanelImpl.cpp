@@ -264,3 +264,16 @@ void MainWindow::ManageLayout()
 
 	layout->update();
 }
+
+/*
+	pArrowPad = new ArrowPadDef(this);
+	pArrowPad->pButtonUp = new QPushButton("Up", this);
+	pArrowPad->pButtonDown = new QPushButton("Down", this);
+	pArrowPad->pButtonLeft = new QPushButton("Left", this);
+	pArrowPad->pButtonRight = new QPushButton("Right", this);
+	pArrowPad->ConnectSignals();
+	vLayout3a->addWidget( pArrowPad->pButtonUp, 0, 1, 1, 1, Qt::AlignLeft);
+	vLayout3a->addWidget( pArrowPad->pButtonLeft, 1, 0, 1, 1, Qt::AlignLeft);
+	vLayout3a->addWidget( pArrowPad->pButtonRight, 1, 2, 1, 1, Qt::AlignLeft);
+	vLayout3a->addWidget( pArrowPad->pButtonDown, 2, 1, 1, 1, Qt::AlignLeft);
+	*/

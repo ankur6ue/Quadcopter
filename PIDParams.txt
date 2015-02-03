@@ -1,0 +1,5 @@
+YawPIDParams 12 0 5
+PitchPIDParams 24 3 10
+RollPIDParams 24 3 10
+DefaultRollSetPoint -5
+DefaultPitchSetPoint -4

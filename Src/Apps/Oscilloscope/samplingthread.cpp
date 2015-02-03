@@ -2,7 +2,7 @@
 #include "signaldata.h"
 #include <qwt_math.h>
 #include <math.h>
-#include "sensordataparser.h"
+#include "DataParser.h"
 #include "commanddef.h"
 #include <qlist.h>
 
@@ -24,12 +24,13 @@ SamplingThread::SamplingThread( QObject *parent ):
     pamplitude( 20.0 ), iDataLength(1500)
 {
 	SetupSerialPort();
-	pSensorDataParser = new SensorDataParser();
-	pSensorDataParser->RegisterDataParser(new SensorDataParserImplYpr(this, "ypr", 3));
-	pSensorDataParser->RegisterDataParser(new SensorDataParserImplFusion(this, "fusion", 3));
-	pSensorDataParser->RegisterDataParser(new SensorDataParserImplPID(this, "PID", 3));
-	pSensorDataParser->RegisterDataParser(new SensorDataParserImplCommands(this));
-	pSensorDataParser->RegisterAckParser(new SensorDataParserImplAck(this));
+	pDataParser = new DataParser();
+	pDataParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
+	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
+	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
+	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
+	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
+	pDataParser->RegisterAckParser(new DataParserImplAck(this));
 
 //	fp = fopen("C:\\Qt\\SensorData.txt", "w");
 }
@@ -78,8 +79,8 @@ void SamplingThread::sample( double elapsed )
 	//	printf("Bytes read: (-1 means no data available) %i\n",readResult);
 		if (bytesRead != -1)
 		{
-			pSensorDataParser->ParseData(cIncomingData, bytesRead);
-			pSensorDataParser->Plot(elapsed);
+			pDataParser->ParseData(cIncomingData, bytesRead);
+			pDataParser->Plot(elapsed);
 		}	
 
 		UserCommands* commandInstance = &(UserCommands::Instance());
@@ -307,7 +308,7 @@ bool SamplingThread::CheckForAck(char* ackCmdId)
 	int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
 	if (bytesRead != -1)
 	{
-		return pSensorDataParser->ParseAck(cIncomingData, bytesRead, ackCmdId);
+		return pDataParser->ParseAck(cIncomingData, bytesRead, ackCmdId);
 	}
 	return false;
 }

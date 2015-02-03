@@ -4,7 +4,7 @@
 #include "runningaverage.h"
 #include "echocommanddef.h"
 
-class SensorDataParser;
+class DataParser;
 class CommandDef;
 
 class SamplingThread: public QwtSamplingThread
@@ -40,6 +40,6 @@ private:
 	unsigned int iDataLength;
 	Serial* Sp;
 	FILE* fp;
-	SensorDataParser* pSensorDataParser;
+	DataParser* pDataParser;
 	RunningAverage RunningAvg; 
 };
