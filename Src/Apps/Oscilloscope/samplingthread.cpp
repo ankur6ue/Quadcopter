@@ -1,3 +1,18 @@
+/**************************************************************************
+
+Filename    :   SamplingThread.cpp
+Content     :   
+Created     :   Feb 2015
+Authors     :   Ankur Mohan
+
+Copyright   :   Copyright 2015 Ankur Mohan, All Rights reserved.
+
+Use of this software is subject to the terms of the license
+agreement provided at the time of installation or download, or which
+otherwise accompanies this software in either electronic or hard copy form.
+
+**************************************************************************/
+
 #include "samplingthread.h"
 #include "signaldata.h"
 #include <qwt_math.h>
@@ -21,15 +36,16 @@ enum ERRORS
 SamplingThread::SamplingThread( QObject *parent ):
     QwtSamplingThread( parent ),
     pfrequency( 5.0 ),
-    pamplitude( 20.0 ), iDataLength(1500)
+    pamplitude( 20.0 ), iDataLength(1500), BytesRead(0)
 {
 	SetupSerialPort();
+	cLastSnippet[0] = '\0';
 	pDataParser = new DataParser();
 	pDataParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
 	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
 	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
 	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
-	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
+//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
 	pDataParser->RegisterAckParser(new DataParserImplAck(this));
 
 //	fp = fopen("C:\\Qt\\SensorData.txt", "w");
@@ -74,13 +90,64 @@ void SamplingThread::sample( double elapsed )
 {
     if ( pfrequency > 0.0 )
     {	
-		memset(cIncomingData, 0, 2000);
-		int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
+		int newBytesRead = Sp->ReadData(cIncomingData+BytesRead,iDataLength);
+		
 	//	printf("Bytes read: (-1 means no data available) %i\n",readResult);
-		if (bytesRead != -1)
+	// Each packet of data sent by the quadcopter has a sentinal character in the end (currently "z"). 
+	// We append all packets of data received until we see a sentinal character as the end character. 
+	// This prevents sending a partial packet to the parser. Once we detect a sentinal character, we split
+	// the appended sting into substrings tokenized by the sentinal character to take care of the case 
+	// where multiple packets were read in one stroke. In this case the sentinal character would be somewhere
+	// in the middle of the data read. Spliting the string allows us to separate the packets out neatly. 
+	// Note that technically we should also adjust the "elapsed" parameter to factor in the different times
+	// the packets are received. For now this is not a problem, but is a good TBD.
+		if (newBytesRead != -1)
 		{
-			pDataParser->ParseData(cIncomingData, bytesRead);
-			pDataParser->Plot(elapsed);
+			BytesRead += newBytesRead;
+			char* next_token = NULL;
+//			if(cIncomingData[BytesRead-1] == 'z' && BytesRead < 1500)
+			{
+				char* token;
+				// Append last snippet with new incoming data
+				int lastSnippetSize = strlen(cLastSnippet);
+				if (lastSnippetSize)
+				{
+					char tmp[2000];
+					memcpy(tmp, cIncomingData, BytesRead);
+					memcpy(cIncomingData, cLastSnippet, lastSnippetSize);
+					memcpy(cIncomingData + lastSnippetSize, tmp, BytesRead);
+					// We used this snippet, so put a terminating null in the beginning
+					cLastSnippet[0] = '\0';
+				}
+				token = strtok_s(cIncomingData, "z", &next_token);
+				while(*next_token != '\0')
+				{
+					pDataParser->ParseData(token, strlen(token));
+					pDataParser->Plot(elapsed);
+					token = strtok_s(NULL, "z", &next_token);
+				}
+				// we are at the last snippet. Check if it has a sentinal in the end.
+				int len = strlen(cIncomingData);
+				if (len >= 1)
+				{
+					if (cIncomingData[len-1] == 'z')
+					{
+						pDataParser->ParseData(token, strlen(token));
+						pDataParser->Plot(elapsed);
+					}
+					else
+					{
+						strcpy(cLastSnippet, token);
+					}
+				}
+				memset(cIncomingData, 0, 1500);
+				BytesRead = 0;
+			}
+			if (BytesRead >= 1500)
+			{
+				memset(cIncomingData, 0, 1500);
+				BytesRead = 0;
+			}
 		}	
 
 		UserCommands* commandInstance = &(UserCommands::Instance());
@@ -304,11 +371,11 @@ bool SamplingThread::BlockTillReply(unsigned long timeout, char* ackCmdId)
 
 bool SamplingThread::CheckForAck(char* ackCmdId)
 {
-	memset(cIncomingData, 0, 2000); 
-	int bytesRead = Sp->ReadData(cIncomingData,iDataLength);
+	memset(cIncomingDataAck, 0, 2000); 
+	int bytesRead = Sp->ReadData(cIncomingDataAck,iDataLength);
 	if (bytesRead != -1)
 	{
-		return pDataParser->ParseAck(cIncomingData, bytesRead, ackCmdId);
+		return pDataParser->ParseAck(cIncomingDataAck, bytesRead, ackCmdId);
 	}
 	return false;
 }

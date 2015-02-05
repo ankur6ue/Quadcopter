@@ -1,20 +1,17 @@
-/*
-  IMU.h - Library to use the IMU 
-  Created by Romain Goussault <romain.goussault@gmail.com>
-  
-  This program is free software: you can redistribute it and/or modify 
-  it under the terms of the GNU General Public License as published by 
-  the Free Software Foundation, either version 3 of the License, or 
-  (at your option) any later version. 
+/**************************************************************************
 
-  This program is distributed in the hope that it will be useful, 
-  but WITHOUT ANY WARRANTY; without even the implied warranty of 
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-  GNU General Public License for more details. 
+Filename    :   IMU.h
+Content     :
+Created     :   Feb 2015
+Authors     :   Ankur Mohan
 
-  You should have received a copy of the GNU General Public License 
-  afloat with this program. If not, see <http://www.gnu.org/licenses/>. 
-*/
+Copyright   :   Copyright 2015 Ankur Mohan, All Rights reserved.
+
+Use of this software is subject to the terms of the license
+agreement provided at the time of installation or download, or which
+otherwise accompanies this software in either electronic or hard copy form.
+
+**************************************************************************/
 #ifndef IMU_h
 #define IMU_h
 
@@ -59,10 +56,11 @@ class IMU
   bool GetYPR(float& yaw, float& pitch, float& roll);
   bool DoSanityCheck(float& yaw, float& pitch, float& roll);
 
-  int gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
+  int 	gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
   float GYRO_FACTOR;
   float RADIANS_TO_DEGREES;
+
   private:
 
 	//Kalman kalmanX; // Create the Kalman instances

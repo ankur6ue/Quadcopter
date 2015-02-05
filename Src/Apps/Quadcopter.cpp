@@ -1,17 +1,33 @@
+/**************************************************************************
+
+Filename    :   Quadcopter.cpp
+Content     :
+Created     :   Feb 2015
+Authors     :   Ankur Mohan
+
+Copyright   :   Copyright 2015 Ankur Mohan, All Rights reserved.
+
+Use of this software is subject to the terms of the license
+agreement provided at the time of installation or download, or which
+otherwise accompanies this software in either electronic or hard copy form.
+
+**************************************************************************/
 
 #include "Quadcopter.h"
-#include "Pinger.h"
+#include "Logger.h"
 #include "CommandCtrl.h"
 #include "Scheduler.h"
 #include "AttitudePIDCtrl.h"
 #include "BLMotorControl.h"
 #include "IMU.h"
 #include "ErrorsDef.h"
-
+#include "BeaconListener.h"
+#include "SoftwareSerial.h"
+#include "SerialDef.h"
 
 MyLog 			cLog1;
 MyLog			cLog2;
-/* The pinger class sends the chracters accumulated in the Log to the serial port every 100 (configurable) ms.
+/* The Logger class sends the chracters accumulated in the Log to the serial port every 100 (configurable) ms.
  * This appears to be safe as the packetization timeout (RO) of the Xbee radio that I'm using for radio communication
  * is defined as 3*character time. At a baudrate of 115200, with 10 bits (including start/stop bit) needed for transfering
  * one bit, the timeout period = 3*10/115200*1000ms = 0.26ms. The time taken to tranfer one command packet (70 bytes) =
@@ -20,15 +36,17 @@ MyLog			cLog2;
  * for more detail.
  */
 /*
- * QuadStatePinger sends Quadstate every 1000ms
+ * cQuadStateLogger sends Quadstate every 1000ms
  */
 
 Scheduler 			cScheduler;
 
-QuadStatePinger 	QuadStatePinger(1, &cLog1, "QuadStatePinger");
-PIDStatePinger		PIDStatePinger(10, &cLog2, "PIDState");
-CommandCtrl			CommandCtrl(50, "CommandCtrl");
+QuadStateLogger 	cQuadStateLogger(0.8, &cLog1, "QuadStateLogger");
+PIDStateLogger		cPIDStateLogger(9, &cLog2, "PIDStateLogger");
+ExceptionLogger		cExceptionLogger(0.5, NULL, "ExceptionLogger");
+CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(200, "MotorCtrl");
+BeaconListener		cBeaconListener(1, "BeaconListener");
 
 AttitudePIDCtrl 	PitchCntrl;
 AttitudePIDCtrl 	YawCntrl;
@@ -82,15 +100,17 @@ void setup()
 //    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
     SERIAL.print("In Setup");
 
-    cScheduler.RegisterTask(&QuadStatePinger);
-    cScheduler.RegisterTask(&PIDStatePinger);
-    cScheduler.RegisterTask(&CommandCtrl);
-
+    cScheduler.RegisterTask(&cQuadStateLogger);
+    cScheduler.RegisterTask(&cPIDStateLogger);
+    cScheduler.RegisterTask(&cCommandCtrl);
+    cScheduler.RegisterTask(&cBeaconListener);
+    cScheduler.RegisterTask(&cExceptionLogger);
     /// Motors must be initialized first, otherwise the ESC will see inconsistent voltage on the PWM pin. They should
     /// see the ESCLow setting set during ESC calibration.
     cMotorCtrl.InitMotors();
 
-    // No exceptions for now
+    // Clear all exceptions
+
     cExceptionMgr.ClearExceptionFlag();
     ////////////////// MPU Initialization ////////////////
     Imu.Init();

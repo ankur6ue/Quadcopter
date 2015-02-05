@@ -34,12 +34,16 @@ protected:
 /*	virtual void run(); */
 private:
     virtual double value( double timeStamp ) const;
-	double pfrequency;
-    double pamplitude;
-	char cIncomingData[2000];
+	double		pfrequency;
+    double		pamplitude;
+	char		cIncomingData[2000];
+	char		cIncomingDataAck[2000]; // Separate buffers for receiving command acks
+	char		cLastSnippet[2000];
 	unsigned int iDataLength;
-	Serial* Sp;
-	FILE* fp;
+
+	Serial*		Sp;
+	FILE*		fp;
 	DataParser* pDataParser;
 	RunningAverage RunningAvg; 
+	int			BytesRead;
 };

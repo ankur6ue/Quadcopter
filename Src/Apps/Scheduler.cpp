@@ -1,3 +1,18 @@
+/**************************************************************************
+
+Filename    :   Scheduler.cpp
+Content     :
+Created     :   Feb 2015
+Authors     :   Ankur Mohan
+
+Copyright   :   Copyright 2015 Ankur Mohan, All Rights reserved.
+
+Use of this software is subject to the terms of the license
+agreement provided at the time of installation or download, or which
+otherwise accompanies this software in either electronic or hard copy form.
+
+**************************************************************************/
+
 #include "Scheduler.h"
 #include "arduino.h"
 #include "SoftwareSerial.h"
@@ -37,7 +52,7 @@ void Scheduler::RunTask(Task* task)
 	}
 }
 
-Task::Task (int frequency, const char* name): IntervalTicks(1000000/frequency)
+Task::Task (float frequency, const char* name): IntervalTicks((unsigned long)(1000000.0/frequency))
 {
 	LastRunTime = 0;
 	TimeTaken	= 0;
