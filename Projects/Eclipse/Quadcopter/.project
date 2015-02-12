@@ -47,6 +47,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/BLMotorControl.h</locationURI>
 		</link>
 		<link>
+			<name>BeaconListener.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/BeaconListener.cpp</locationURI>
+		</link>
+		<link>
+			<name>BeaconListener.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/BeaconListener.h</locationURI>
+		</link>
+		<link>
 			<name>Callbacks.h</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Callbacks.h</locationURI>
@@ -97,6 +107,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/IMU.h</locationURI>
 		</link>
 		<link>
+			<name>Logger.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Logger.cpp</locationURI>
+		</link>
+		<link>
+			<name>Logger.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Logger.h</locationURI>
+		</link>
+		<link>
 			<name>MPU6050.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Tools/MPU6050/MPU6050.cpp</locationURI>
@@ -115,11 +135,6 @@
 			<name>PWMRead.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/PWMRead.cpp</locationURI>
-		</link>
-		<link>
-			<name>Pinger.h</name>
-			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Pinger.h</locationURI>
 		</link>
 		<link>
 			<name>Quadcopter.cpp</name>

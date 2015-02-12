@@ -20,7 +20,7 @@ extern SoftwareSerial SSerial;
 #define USE_HARDWARE_SERIAL
 
 #ifdef USE_HARDWARE_SERIAL
-#define SERIAL Serial1
+#define SERIAL Serial
 #else
 #define SERIAL SSerial
 #endif

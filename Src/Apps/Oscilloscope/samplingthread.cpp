@@ -34,9 +34,9 @@ enum ERRORS
 };
 
 SamplingThread::SamplingThread( QObject *parent ):
-    QwtSamplingThread( parent ),
-    pfrequency( 5.0 ),
-    pamplitude( 20.0 ), iDataLength(1500), BytesRead(0)
+	QwtSamplingThread( parent ),
+	pfrequency( 5.0 ),
+	pamplitude( 20.0 ), iDataLength(1500), BytesRead(0)
 {
 	SetupSerialPort();
 	cLastSnippet[0] = '\0';
@@ -45,10 +45,10 @@ SamplingThread::SamplingThread( QObject *parent ):
 	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
 	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
 	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
-//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
+	//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
 	pDataParser->RegisterAckParser(new DataParserImplAck(this));
 
-//	fp = fopen("C:\\Qt\\SensorData.txt", "w");
+	//	fp = fopen("C:\\Qt\\SensorData.txt", "w");
 }
 
 
@@ -56,7 +56,7 @@ SamplingThread::SamplingThread( QObject *parent ):
 int SamplingThread::SetupSerialPort()
 {
 	int success = false;
-	Sp = new Serial("\\\\.\\COM19",115200);    // adjust as needed
+	Sp = new Serial("\\\\.\\COM20",115200);    // adjust as needed
 
 	if (Sp->IsConnected())
 	{
@@ -68,86 +68,87 @@ int SamplingThread::SetupSerialPort()
 
 void SamplingThread::setFrequency( double frequency )
 {
-    pfrequency = frequency;
+	pfrequency = frequency;
 }
 
 void SamplingThread::setAmplitude( double amplitude )
 {
-    pamplitude = amplitude;
+	pamplitude = amplitude;
 }
 
 double SamplingThread::frequency() const
 {
-    return pfrequency;
+	return pfrequency;
 }
 
 double SamplingThread::amplitude() const
 {
-    return pamplitude;
+	return pamplitude;
 }
 
 void SamplingThread::sample( double elapsed )
 {
-    if ( pfrequency > 0.0 )
-    {	
-		int newBytesRead = Sp->ReadData(cIncomingData+BytesRead,iDataLength);
-		
-	//	printf("Bytes read: (-1 means no data available) %i\n",readResult);
-	// Each packet of data sent by the quadcopter has a sentinal character in the end (currently "z"). 
-	// We append all packets of data received until we see a sentinal character as the end character. 
-	// This prevents sending a partial packet to the parser. Once we detect a sentinal character, we split
-	// the appended sting into substrings tokenized by the sentinal character to take care of the case 
-	// where multiple packets were read in one stroke. In this case the sentinal character would be somewhere
-	// in the middle of the data read. Spliting the string allows us to separate the packets out neatly. 
-	// Note that technically we should also adjust the "elapsed" parameter to factor in the different times
-	// the packets are received. For now this is not a problem, but is a good TBD.
-		if (newBytesRead != -1)
+	if ( pfrequency > 0.0 )
+	{	
+		BytesRead = Sp->ReadData(cIncomingData, iDataLength);
+		// The quadcopter hardware sends each packet of data with a sentinal character ('z') in the end. 
+		// --data1--z--data2--z--data3--z...
+		// The sentinal helps us determine if a packet received is a complete data packet and also to separate out
+		// different data packets. However a packet could be split during data transmission so the sequence of characters
+		// read doesn't have a sentinal in the end. To handle this case, we split the character string received into substrings
+		// separated by the sentinal character. The last substring could be either a full packet or could have been split up
+		// during transmission. If it was split up during transmission, it wouldn't have a terminating sentinal character. Such
+		// partial substrings are stored in the LastSnippet array and preprended to the next burst of characters received. This
+		// mechanism allows us to process data packets in a contiguous manner. 
+		// A key assumption made here is there is no data loss during transmission. This assumption could be easily violated, 
+		// particularly as the quadcopter travels away from the receiver. We should look into making this algorithm robust to data
+		// loss during transmission
+		// Note that technically we should also adjust the "elapsed" parameter to factor in the different times
+		// the packets are received. For now this is not a problem, but is a good TBD.
+		if (BytesRead != -1)
 		{
-			BytesRead += newBytesRead;
 			char* next_token = NULL;
-//			if(cIncomingData[BytesRead-1] == 'z' && BytesRead < 1500)
+			char* token;
+			// Prepend new characters read with lastSnippet
+			int lastSnippetSize = strlen(cLastSnippet);
+			if (lastSnippetSize)
 			{
-				char* token;
-				// Append last snippet with new incoming data
-				int lastSnippetSize = strlen(cLastSnippet);
-				if (lastSnippetSize)
-				{
-					char tmp[2000];
-					memcpy(tmp, cIncomingData, BytesRead);
-					memcpy(cIncomingData, cLastSnippet, lastSnippetSize);
-					memcpy(cIncomingData + lastSnippetSize, tmp, BytesRead);
-					// We used this snippet, so put a terminating null in the beginning
-					cLastSnippet[0] = '\0';
-				}
-				token = strtok_s(cIncomingData, "z", &next_token);
-				while(*next_token != '\0')
-				{
-					pDataParser->ParseData(token, strlen(token));
-					pDataParser->Plot(elapsed);
-					token = strtok_s(NULL, "z", &next_token);
-				}
-				// we are at the last snippet. Check if it has a sentinal in the end.
-				int len = strlen(cIncomingData);
-				if (len >= 1)
-				{
-					if (cIncomingData[len-1] == 'z')
-					{
-						pDataParser->ParseData(token, strlen(token));
-						pDataParser->Plot(elapsed);
-					}
-					else
-					{
-						strcpy(cLastSnippet, token);
-					}
-				}
-				memset(cIncomingData, 0, 1500);
-				BytesRead = 0;
+				char tmp[2000];
+				memcpy(tmp, cIncomingData, BytesRead);
+				memcpy(cIncomingData, cLastSnippet, lastSnippetSize);
+				memcpy(cIncomingData + lastSnippetSize, tmp, BytesRead);
+				// We used this snippet, so put a terminating null in the beginning
+				cLastSnippet[0] = '\0';
 			}
-			if (BytesRead >= 1500)
+			// We check for the last character in the incoming data here and not after passing cIncomingData to
+			// strtok as strtok modifies the data passed to it.
+			char lastChar = '\0';
+			int len = strlen(cIncomingData);
+			if (len >= 1)
 			{
-				memset(cIncomingData, 0, 1500);
-				BytesRead = 0;
+				lastChar = cIncomingData[len-1];
 			}
+			token = strtok_s(cIncomingData, "z", &next_token);
+			while(*next_token != '\0')
+			{
+				pDataParser->ParseData(token, strlen(token));
+				pDataParser->Plot(elapsed);
+				token = strtok_s(NULL, "z", &next_token);
+			}
+			// we are at the last snippet. Check if it has a sentinal in the end.
+			if (lastChar == 'z')
+			{
+				// Sentinal was found, this means that the last snippet is a full command packet. Go ahead and parse it
+				pDataParser->ParseData(token, strlen(token));
+				pDataParser->Plot(elapsed);
+			}
+			else
+			{
+				// Sentinal was missing, store the lastSnippet and prepend to the next burst of data received, which should 
+				// start with the missing characters of this snippet. 
+				strcpy(cLastSnippet, token);
+			}
+			memset(cIncomingData, 0, 1500);
 		}	
 
 		UserCommands* commandInstance = &(UserCommands::Instance());
@@ -177,7 +178,7 @@ void SamplingThread::sample( double elapsed )
 				_speed = commandInstance->GetSpeed();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef( "Speed", (float)_speed);
-				
+
 				commandList.push_back(pcommandDef);
 			}
 
@@ -189,7 +190,7 @@ void SamplingThread::sample( double elapsed )
 				pcommandDef = new CommandDef("MotorToggle", (float)bmotorToggle);
 				commandList.push_back(pcommandDef);
 			}
-				
+
 			if (commandInstance->IsDirty(MOTORSTATE))
 			{
 				commandInstance->doLock();
@@ -302,7 +303,7 @@ void SamplingThread::sample( double elapsed )
 					commandList.push_back(pcommandDef);
 				}
 			}
-			
+
 			for (int i = 0; i < commandList.length(); i++)
 			{
 				int numChar = commandList[i]->numChar;
@@ -313,7 +314,7 @@ void SamplingThread::sample( double elapsed )
 				delete commandList[i];
 			}
 		}
-    }
+	}
 }
 
 void SamplingThread::SendCommandAndWaitAck(CommandDef* pcommandDef)
@@ -353,20 +354,20 @@ void SamplingThread::SendBeacon()
 }
 
 /**
- * Waits for reply from sender or timeout before continuing
- */
+* Waits for reply from sender or timeout before continuing
+*/
 bool SamplingThread::BlockTillReply(unsigned long timeout, char* ackCmdId)
 {
-    unsigned long time  = GetTickCount();
-    unsigned long start = time;
-    bool receivedAck    = false;
-    while( (time - start ) < timeout && !receivedAck) {
+	unsigned long time  = GetTickCount();
+	unsigned long start = time;
+	bool receivedAck    = false;
+	while( (time - start ) < timeout && !receivedAck) {
 		// wait for a few ms before checking again
 		Sleep(5);
 		time = GetTickCount();
-        receivedAck = CheckForAck(ackCmdId);
-    }
-    return receivedAck;
+		receivedAck = CheckForAck(ackCmdId);
+	}
+	return receivedAck;
 }
 
 bool SamplingThread::CheckForAck(char* ackCmdId)
@@ -382,17 +383,17 @@ bool SamplingThread::CheckForAck(char* ackCmdId)
 
 double SamplingThread::value( double timeStamp ) const
 {
-    const double period = 1.0 / pfrequency;
+	const double period = 1.0 / pfrequency;
 
-    const double x = ::fmod( timeStamp, period );
-    const double v = pamplitude * qFastSin( x / period * 2 * M_PI );
+	const double x = ::fmod( timeStamp, period );
+	const double v = pamplitude * qFastSin( x / period * 2 * M_PI );
 
-    return v;
+	return v;
 }
 
 /*
 void SamplingThread::run()
 {
-   
+
 }
 */

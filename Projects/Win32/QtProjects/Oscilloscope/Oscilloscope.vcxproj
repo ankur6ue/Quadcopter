@@ -19,7 +19,7 @@
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\mainwindow.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\plot.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\samplingthread.cpp" />
-    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\sensordataparser.cpp" />
+    <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\dataparser.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\signaldata.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\UIPanelImpl.cpp" />
     <ClCompile Include="..\..\..\..\Src\Apps\Oscilloscope\wheelbox.cpp" />
@@ -74,6 +74,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_WIDGETS_LIB "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtWidgets"</Command>
     </CustomBuild>
+    <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\DataParser.h" />
     <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\plotiddef.h" />
     <ClInclude Include="..\..\..\..\Src\Apps\Oscilloscope\signaldata.h" />
     <CustomBuild Include="..\..\..\..\Src\Apps\Oscilloscope\wheelbox.h">
