@@ -17,20 +17,25 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "MainWindow.h"
 #include "QMenuBar.h"
 
-void PIDTypeMenu::SetAttitudeCtrlPID()
+void PIDTypeMenu::OnCtrlPIDChanged(QAction* pactiveAction)
 {
 	MainWindow* pmainWindow = (MainWindow*)(parentWidget());
-	pmainWindow->ePIDType = AttitudePIDControl;
+	QString actionName = pactiveAction->objectName();
+	if (actionName == "Attitude")
+		pmainWindow->ePIDType = AttitudePIDControl;
+	if (actionName == "Rate")
+		pmainWindow->ePIDType = RatePIDControl;
+
+	QList<QAction*> actionsList = this->actions();
+	for (int i = 0; i < actionsList.length(); i++)
+	{
+		if (actionsList[i] != pactiveAction)
+		{
+			actionsList[i]->setChecked(false);
+		}
+	}
 	pmainWindow->PIDCtrlTypeChanged();
 }
-
-void PIDTypeMenu::SetRateCtrlPID()
-{
-	MainWindow* pmainWindow = (MainWindow*)(parentWidget());
-	pmainWindow->ePIDType = RatePIDControl;
-	pmainWindow->PIDCtrlTypeChanged();
-}
-
 
 void MainWindow::CreateMenuItems()
 {
@@ -38,9 +43,24 @@ void MainWindow::CreateMenuItems()
 	pPIDTypeMenu = new PIDTypeMenu("&PIDType", this);
 	pMenuBar->addMenu(pPIDTypeMenu);
 	QAction* pattitudeCtrlAct = new QAction("AttitudeControl", pPIDTypeMenu);
-	QObject::connect(pattitudeCtrlAct, SIGNAL(triggered()), pPIDTypeMenu, SLOT(SetAttitudeCtrlPID()));
+	pattitudeCtrlAct->setObjectName("Attitude");
+	pattitudeCtrlAct->setCheckable(true);
+	QObject::connect(pPIDTypeMenu, SIGNAL(triggered(QAction*)), pPIDTypeMenu, SLOT(OnCtrlPIDChanged(QAction*)));
 	pPIDTypeMenu->addAction(pattitudeCtrlAct);
 	QAction* prateCtrlAct = new QAction("RateControl", pPIDTypeMenu);
-	QObject::connect(prateCtrlAct, SIGNAL(triggered()), pPIDTypeMenu, SLOT(SetRateCtrlPID()));
+	prateCtrlAct->setObjectName("Rate");
+	prateCtrlAct->setCheckable(true);
 	pPIDTypeMenu->addAction(prateCtrlAct);
+	pPIDTypeMenu->setActiveAction(pattitudeCtrlAct);
+	pattitudeCtrlAct->setChecked(true);
+	if (ePIDType == AttitudePIDControl) 
+	{
+		pPitchPIDParams = &mAttPIDParams.PitchPIDParams;
+		pYawPIDParams	= &mAttPIDParams.YawPIDParams;
+	}
+	if (ePIDType == RatePIDControl) 
+	{
+		pPitchPIDParams = &mRatePIDParams.PitchPIDParams;
+		pYawPIDParams	= &mRatePIDParams.YawPIDParams;
+	}
 }

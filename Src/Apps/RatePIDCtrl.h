@@ -16,11 +16,34 @@ otherwise accompanies this software in either electronic or hard copy form.
 #define __RATEPIDCONTROL__
 #include "PIDControl.h"
 
-class RatePIDCtrl: public PIDController
+class RatePIDCtrl: public PIDControllerImpl
 {
 public:
 	RatePIDCtrl(){};
-	double Compute(double input);
+	~RatePIDCtrl(){};
+	double Compute(double angle, double unused);
+
+	virtual void SetTunings(double Kp, double Ki, double Kd);
+
+	virtual void SetSetPoint(double _setPoint);
+
+	virtual void SetNewSetpoint(double _setPoint);
+
+	virtual void SetSpeed(int);
+
+	virtual double GetSetPoint();
+
+	virtual void SetErrorSum(double val);
+
+	virtual void SetLastError(double val);
+
+	virtual double GetErrorSum();
+
+	double ApplySafeCheck(double Output);
+
+	void Reset();
+
+	double LastOutput;
 };
 
 #endif

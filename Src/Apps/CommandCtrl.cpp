@@ -22,9 +22,9 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "BLMotorControl.h"
 #include "ErrorsDef.h"
 
-extern AttitudePIDCtrl 	PitchCntrl;
-extern AttitudePIDCtrl	YawCntrl;
-extern AttitudePIDCtrl	RollCntrl;
+extern PIDController 	PitchCntrl;
+extern PIDController	YawCntrl;
+extern PIDController	RollCntrl;
 extern MotorCtrl		cMotorCtrl;
 extern ExceptionMgr		cExceptionMgr;
 
@@ -141,22 +141,34 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		{
 			cMotorCtrl.ResetMotors();
 			cExceptionMgr.ClearExceptionFlag();
-			bIsPIDSetup = false;
-			bIsKpSet = false;
-			bIsKiSet = false;
-			bIsKdSet = false;
-			bIsYawKpSet = false;
-			bIsYawKiSet = false;
-			bIsYawKdSet = false;
-
-			PitchCntrl.SetErrorSum(0);
-			RollCntrl.SetErrorSum(0);
-			YawCntrl.SetErrorSum(0);
-			PitchCntrl.SetLastError(0);
-			RollCntrl.SetLastError(0);
-			YawCntrl.SetLastError(0);
+			bIsPIDSetup 	= false;
+			bIsKpSet 		= false;
+			bIsKiSet 		= false;
+			bIsKdSet 		= false;
+			bIsYawKpSet 	= false;
+			bIsYawKiSet 	= false;
+			bIsYawKdSet 	= false;
+			bIsPIDTypeSet 	= false;
+			PitchCntrl.Reset();
+			RollCntrl.Reset();
+			YawCntrl.Reset();
+			PitchCntrl.Reset();
+			RollCntrl.Reset();
+			YawCntrl.Reset();
 			//	cLog.EchoCommand(cLog.CreateCommand("ESC", 0));
 		}
+	}
+
+	if (!strcmp(cmd->Name, "PIDType"))
+	{
+		QuadState.ePIDType = (PIDType)(int)cmd->Param;
+		PitchCntrl.Reset();
+		RollCntrl.Reset();
+		YawCntrl.Reset();
+		PitchCntrl.Reset();
+		RollCntrl.Reset();
+		YawCntrl.Reset();
+		bIsPIDTypeSet = true;
 	}
 
 	if (!strcmp(cmd->Name, "Kp"))

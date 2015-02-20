@@ -28,6 +28,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "commanddef.h"
 #include "echocommanddef.h"
 #include "joystick.h"
+#include "PIDTypeMenu.h"
 
 void MainWindow::CreatePlots()
 {
@@ -75,32 +76,57 @@ void MainWindow::CreatePlotControls()
 	pTimerWheel->setValue( 20.0 );
 }
 
+void MainWindow::CreateCommonPIDControls()
+{
+	pCommonPIDCtrl	= new CommonPIDControls();
+
+	pCommonPIDCtrl->pPitchKp = new WheelBox( "Kp", 0, 30, 1, this );
+	pCommonPIDCtrl->pPitchKi = new WheelBox( "Ki", 0, 3, 0.05, this );
+	pCommonPIDCtrl->pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
+	pCommonPIDCtrl->pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
+	pCommonPIDCtrl->pYawKi = new WheelBox( "Yaw_Ki", 0, 1, 0.01, this );
+	pCommonPIDCtrl->pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.05, this );
+
+	SetPIDParams();
+}
+
+void MainWindow::SetPIDParams()
+{
+	pCommonPIDCtrl->pPitchKp->setValue( pPitchPIDParams->fKp );
+	pCommonPIDCtrl->pPitchKi->setValue( pPitchPIDParams->fKi );
+	pCommonPIDCtrl->pPitchKd->setValue( pPitchPIDParams->fKd );
+	pCommonPIDCtrl->pYawKp->setValue( pYawPIDParams->fKp );
+	pCommonPIDCtrl->pYawKi->setValue( pYawPIDParams->fKi );
+	pCommonPIDCtrl->pYawKd->setValue( pYawPIDParams->fKd );
+}
+
+void MainWindow::CreateAttitudePIDControls()
+{
+	pAttPIDCtrl		= new AttitudePIDControls();
+	pAttPIDCtrl->pCommonPIDCtrl = pCommonPIDCtrl;
+}
+
+void MainWindow::CreateRatePIDControls()
+{
+	pRatePIDCtrl	= new RatePIDControls();
+	pRatePIDCtrl->pCommonPIDCtrl = pCommonPIDCtrl;
+}
+
 void MainWindow::CreatePIDControls()
 {
-	pPitchKp = new WheelBox( "Kp", 0, 30, 1, this );
-	pPitchKp->setValue( PitchPIDParams.fKp );
-
-	pPitchKi = new WheelBox( "Ki", 0, 3, 0.05, this );
-	pPitchKi->setValue( PitchPIDParams.fKi );
-
-	pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
-	pPitchKd->setValue( PitchPIDParams.fKd );
-
-	pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
-	pYawKp->setValue( YawPIDParams.fKp );
-
-	pYawKi = new WheelBox( "Yaw_Ki", 0, 1, 0.01, this );
-	pYawKi->setValue( YawPIDParams.fKi );
-
-	pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.05, this );
-	pYawKd->setValue( YawPIDParams.fKd );
-
+	CreateCommonPIDControls();
+	CreateRatePIDControls();
+	CreateAttitudePIDControls();
 }
 
 void MainWindow::CreateQuadStatePanel()
 {
 	QPalette *palette = new QPalette();
 	palette->setColor(QPalette::Text,Qt::Key_Green);
+
+	pPIDType = new QLineEdit(this);
+	pPIDType->setAlignment(Qt::AlignLeft);
+	pPIDType->setPalette(*palette);
 
 	pQuadSpeed = new QLineEdit(this);
 	pQuadSpeed->setAlignment(Qt::AlignLeft);
@@ -198,13 +224,16 @@ void MainWindow::ManageLayout()
 	// Quadcopter PID Control Parameters
 	vLayout2b->setSpacing(0);
 	vLayout2b->setMargin(0);
+	
+//-	AddRateCtrlPIDWidgets();
+//	AddAttitudeCtrlPIDWidgets();
 
-	vLayout2b->addWidget (pPitchKp, 0, 0, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pPitchKi, 0, 1, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pPitchKd, 0, 2, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKp, 0, 0, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKi, 0, 1, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKd, 0, 2, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pCommonPIDCtrl->pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
 	// UI elements representing Quadcopter state
 
 	vLayout2c->setSpacing(0);
@@ -212,6 +241,7 @@ void MainWindow::ManageLayout()
 	vLayout2c->setContentsMargins(0,0,0,50);
 
 	// Create labels here as they are not class member variables
+	QLabel* pPIDTypeLabel = new QLabel("PIDType", this);
 	QLabel* pQuadSpeedLabel = new QLabel("QuadSpeed", this);
 	QLabel* pQuadPowerLabel = new QLabel("QuadPower", this);
 
@@ -246,6 +276,9 @@ void MainWindow::ManageLayout()
 	vLayout2c->addWidget( pQuadPKd, 5, 1, 1, 1, Qt::AlignLeft);
 	vLayout2c->addWidget( pQuadRKd, 5, 2, 1, 1, Qt::AlignLeft);
 	vLayout2c->addWidget( pQuadYKd, 5, 3, 1, 1, Qt::AlignLeft);
+
+	vLayout2c->addWidget( pPIDTypeLabel, 6, 0, 1, 2, Qt::AlignLeft);
+	vLayout2c->addWidget( pPIDType, 6, 2, 1, 2, Qt::AlignLeft);
 
 	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch SetPoints", this);
 	QGridLayout* vLayout3a = new QGridLayout();

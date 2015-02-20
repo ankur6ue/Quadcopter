@@ -245,7 +245,16 @@ void SamplingThread::sample( double elapsed )
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(PIpPARAMS))
+			if (commandInstance->IsDirty(PIDTYPE))
+			{
+				commandInstance->doLock();
+				int pidType = commandInstance->GetPIDType();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("PIDType", (float)pidType);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(PIDPARAMS))
 			{
 				// Figure out which PID Parameter has been modified
 				if (commandInstance->IsPIDFlagDirty(Pitch_Kp))

@@ -29,26 +29,41 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "echocommanddef.h"
 #include "joystick.h"
 
-void MainWindow::ReadPIDParams(PIDParamsDef& yparams, PIDParamsDef& pparams, PIDParamsDef& rparams)
+void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& ratePIDParams)
 {
 	FILE* fp = fopen("C:\\Embedded\\PIDParams.txt", "r");
 	if (fp)
 	{
-		fscanf(fp, "YawPIDParams %f %f %f\n", &yparams.fKp, &yparams.fKi, &yparams.fKd); 
-		fscanf(fp, "PitchPIDParams %f %f %f\n", &pparams.fKp, &pparams.fKi, &pparams.fKd); 
-		fscanf(fp, "RollPIDParams %f %f %f\n", &rparams.fKp, &rparams.fKi, &rparams.fKd); 
+		fscanf(fp, "Attitude YawPIDParams %f %f %f\n", &attPIDParams.YawPIDParams.fKp, &attPIDParams.YawPIDParams.fKi, &attPIDParams.YawPIDParams.fKd); 
+		fscanf(fp, "Attitude PitchPIDParams %f %f %f\n", &attPIDParams.PitchPIDParams.fKp, &attPIDParams.PitchPIDParams.fKi, &attPIDParams.PitchPIDParams.fKd); 
+		fscanf(fp, "Attitude RollPIDParams %f %f %f\n", &attPIDParams.RollPIDParams.fKp, &attPIDParams.RollPIDParams.fKi, &attPIDParams.RollPIDParams.fKd); 
+
+		fscanf(fp, "Rate YawPIDParams %f %f %f\n", &ratePIDParams.YawPIDParams.fKp, &ratePIDParams.YawPIDParams.fKi, &ratePIDParams.YawPIDParams.fKd); 
+		fscanf(fp, "Rate PitchPIDParams %f %f %f\n", &ratePIDParams.PitchPIDParams.fKp, &ratePIDParams.PitchPIDParams.fKi, &ratePIDParams.PitchPIDParams.fKd); 
+		fscanf(fp, "Rate RollPIDParams %f %f %f\n", &ratePIDParams.RollPIDParams.fKp, &ratePIDParams.RollPIDParams.fKi, &ratePIDParams.RollPIDParams.fKd); 
+
 		fscanf(fp, "DefaultRollSetPoint %d\n", &DefaultRollSetPoint); 
 		fscanf(fp, "DefaultPitchSetPoint %d\n", &DefaultPitchSetPoint); 
 	}
 	else
 	{
-		yparams.fKp = 12; yparams.fKi = 0; yparams.fKd = 5;
-		pparams.fKp = 24; pparams.fKi = 3; pparams.fKd = 10;
-		rparams.fKp = 24; rparams.fKi = 3; rparams.fKd = 10;
+		attPIDParams.YawPIDParams.fKp = 12; attPIDParams.YawPIDParams.fKi = 0; attPIDParams.YawPIDParams.fKd = 5;
+		attPIDParams.PitchPIDParams.fKp = 24; attPIDParams.PitchPIDParams.fKi = 3; attPIDParams.PitchPIDParams.fKd = 10;
+		attPIDParams.RollPIDParams.fKp = 24; attPIDParams.RollPIDParams.fKi = 3; attPIDParams.RollPIDParams.fKd = 10;
+
+		ratePIDParams.YawPIDParams.fKp = 12; ratePIDParams.YawPIDParams.fKi = 0; ratePIDParams.YawPIDParams.fKd = 5;
+		ratePIDParams.PitchPIDParams.fKp = 24; ratePIDParams.PitchPIDParams.fKi = 3; ratePIDParams.PitchPIDParams.fKd = 10;
+		ratePIDParams.RollPIDParams.fKp = 24; ratePIDParams.RollPIDParams.fKi = 3; ratePIDParams.RollPIDParams.fKd = 10;
 		DefaultPitchSetPoint = -4; DefaultRollSetPoint = -5;
 	}
 }
 
+MainWindow::~MainWindow()
+{
+	if (pAttPIDCtrl) delete pAttPIDCtrl;
+	if (pRatePIDCtrl) delete pRatePIDCtrl;
+	if (pCommonPIDCtrl) delete pCommonPIDCtrl;
+}
 void MainWindow::SetupCtrlInput()
 {
 	pThread = new QThread;
@@ -65,16 +80,18 @@ void MainWindow::SetupCtrlInput()
 MainWindow::MainWindow( QWidget *parent ):
     QWidget( parent )
 {
-	// Initialize the Joystick
+	// Initialize the Joystick 
 	SetupCtrlInput();
-	ReadPIDParams(YawPIDParams, PitchPIDParams, RollPIDParams);
+	ReadPIDParams(mAttPIDParams, mRatePIDParams);
 	CreatePlots();
 	CreatePlotControls();
+	CreateMenuItems();
 	CreatePIDControls();
 	CreateQuadStatePanel();
 	CreateQuadControlPanel();
 	ManageLayout();
 
+	ePIDType = AttitudePIDControl;
     connect( pAmplitudeKnob, SIGNAL( valueChanged( double ) ),
         SIGNAL( amplitudeChanged( double ) ) );
 
@@ -88,17 +105,17 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	connect( pSpeedWheel, SIGNAL( valueChanged( double ) ), SLOT( speedChanged( double ) ) );
 
-	connect( pPitchKp, SIGNAL( valueChanged( double ) ), SLOT( PitchKpChanged( double ) ) );
+	connect( pCommonPIDCtrl->pPitchKp, SIGNAL( valueChanged( double ) ), SLOT( PitchKpChanged( double ) ) );
 
-	connect( pPitchKi, SIGNAL( valueChanged( double ) ), SLOT( PitchKiChanged( double ) ) );
+	connect( pCommonPIDCtrl->pPitchKi, SIGNAL( valueChanged( double ) ), SLOT( PitchKiChanged( double ) ) );
 
-	connect( pPitchKd, SIGNAL( valueChanged( double ) ), SLOT( PitchKdChanged( double ) ) );
+	connect( pCommonPIDCtrl->pPitchKd, SIGNAL( valueChanged( double ) ), SLOT( PitchKdChanged( double ) ) );
 
-	connect( pYawKp, SIGNAL( valueChanged( double ) ), SLOT( YawKpChanged( double ) ) );
+	connect( pCommonPIDCtrl->pYawKp, SIGNAL( valueChanged( double ) ), SLOT( YawKpChanged( double ) ) );
 
-	connect( pYawKi, SIGNAL( valueChanged( double ) ), SLOT( YawKiChanged( double ) ) );
+	connect( pCommonPIDCtrl->pYawKi, SIGNAL( valueChanged( double ) ), SLOT( YawKiChanged( double ) ) );
 
-	connect( pYawKd, SIGNAL( valueChanged( double ) ), SLOT( YawKdChanged( double ) ) );
+	connect( pCommonPIDCtrl->pYawKd, SIGNAL( valueChanged( double ) ), SLOT( YawKdChanged( double ) ) );
 
 	connect( pPitchSetPtWheel, SIGNAL( valueChanged( double ) ), SLOT( DefaultPitchSetPtChanged( double ) ) );
 
@@ -153,6 +170,22 @@ void MainWindow::setAmplitude( double amplitude )
 	y_plot->replot();
 	p_plot->replot();
 	r_plot->replot();
+}
+
+void MainWindow::PIDCtrlTypeChanged()
+{
+	UserCommands::Instance().SetPIDType(ePIDType);
+	if (ePIDType == AttitudePIDControl) 
+	{
+		pPitchPIDParams = &mAttPIDParams.PitchPIDParams;
+		pYawPIDParams	= &mAttPIDParams.YawPIDParams;
+	}
+	if (ePIDType == RatePIDControl) 
+	{
+		pPitchPIDParams = &mRatePIDParams.PitchPIDParams;
+		pYawPIDParams	= &mRatePIDParams.YawPIDParams;
+	}
+	SetPIDParams();
 }
 
 void MainWindow::AxisMoved(long lX, long lY, long lZ, int moveFlag)
@@ -230,37 +263,37 @@ void MainWindow::YawCtrlChanged(double setPoint)
 
 void MainWindow::PitchKiChanged(double ki)
 {
-	PitchPIDParams.fKi = ki;
+	pPitchPIDParams->fKi = ki;
 	UserCommands::Instance().SetPitchKi(ki);
 }
 
 void MainWindow::PitchKpChanged(double kp)
 {
-	PitchPIDParams.fKp = kp;
+	pPitchPIDParams->fKp = kp;
 	UserCommands::Instance().SetPitchKp(kp);
 }
 
 void MainWindow::PitchKdChanged(double kd)
 {
-	PitchPIDParams.fKd = kd;
+	pPitchPIDParams->fKd = kd;
 	UserCommands::Instance().SetPitchKd(kd);
 }
 
 void MainWindow::YawKiChanged(double ki)
 {
-	YawPIDParams.fKi = ki;
+	pYawPIDParams->fKi = ki;
 	UserCommands::Instance().SetYawKi(ki);
 }
 
 void MainWindow::YawKpChanged(double kp)
 {
-	YawPIDParams.fKp = kp;
+	pYawPIDParams->fKp = kp;
 	UserCommands::Instance().SetYawKp(kp);
 }
 
 void MainWindow::YawKdChanged(double kd)
 {
-	YawPIDParams.fKd = kd;
+	pYawPIDParams->fKd = kd;
 	UserCommands::Instance().SetYawKd(kd);
 }
 
@@ -281,13 +314,13 @@ void MainWindow::motorToggleClicked()
 
 	else
 	{
-		UserCommands::Instance().SetPitchKi(PitchPIDParams.fKi);
-		UserCommands::Instance().SetPitchKp(PitchPIDParams.fKp);
-		UserCommands::Instance().SetPitchKd(PitchPIDParams.fKd);
+		UserCommands::Instance().SetPitchKi(pPitchPIDParams->fKi);
+		UserCommands::Instance().SetPitchKp(pPitchPIDParams->fKp);
+		UserCommands::Instance().SetPitchKd(pPitchPIDParams->fKd);
 
-		UserCommands::Instance().SetYawKi(YawPIDParams.fKi);
-		UserCommands::Instance().SetYawKp(YawPIDParams.fKp);
-		UserCommands::Instance().SetYawKd(YawPIDParams.fKd);
+		UserCommands::Instance().SetYawKi(pYawPIDParams->fKi);
+		UserCommands::Instance().SetYawKp(pYawPIDParams->fKp);
+		UserCommands::Instance().SetYawKd(pYawPIDParams->fKd);
 		
 		//UserCommands::Instance().SetSendBeaconFlag();
 		ResetSetPoint();
@@ -378,6 +411,11 @@ void MainWindow::echoCommand(EchoCommand* cmd)
 	{
 		sprintf_s(tmp, 50, "%f", val);
 		pQuadYKi->setText(tmp);
+	}
+
+	if (!strcmp("PIDType", commandName))
+	{
+		pPIDType->setText(val == 0? "Attitude": "Rate");
 	}
 	delete cmd;
 }

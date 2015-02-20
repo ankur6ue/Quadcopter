@@ -16,10 +16,34 @@ otherwise accompanies this software in either electronic or hard copy form.
 #ifndef PIDCONTROL_h
 #define PIDCONTROL_h
 
-class PIDController
+#define NUMPIDCONTROLLERS 2 // Attitude Controller, Rate Controller
+
+class PIDControllerImpl
 {
 public:
-	PIDController();
+	PIDControllerImpl();
+
+	~PIDControllerImpl(){};
+
+	virtual double Compute(double, double) {return 0;};
+
+	virtual void SetTunings(double Kp, double Ki, double Kd){};
+
+	virtual void SetSetPoint(double _setPoint){};
+
+	virtual void SetNewSetpoint(double _setPoint){};
+
+	virtual void SetSpeed(int){};
+
+	virtual double GetSetPoint() {return 0.0; };
+
+	virtual void SetErrorSum(double val) {};
+
+	virtual void SetLastError(double val) {};
+
+	virtual double GetErrorSum() { return 0.0; };
+
+	virtual void Reset() {};
 
 	unsigned long lastTime;
 	double 	Input, Output, Setpoint;
@@ -28,8 +52,18 @@ public:
 	double 	TargetSetpoint;
 	double 	StepSize;
 	int 	QuadSpeed;
+};
 
-	virtual double Compute(double input){ return 0; };
+class PIDController
+{
+public:
+	PIDController();
+
+	PIDControllerImpl* pidCtrlImpl[NUMPIDCONTROLLERS];
+
+	void RegisterPIDController(int index, PIDControllerImpl* pImpl);
+
+	void CreateControllers();
 
 	void SetTunings(double Kp, double Ki, double Kd);
 
@@ -46,6 +80,11 @@ public:
 	void SetLastError(double val);
 
 	double GetErrorSum();
+
+	double Compute(double, double);
+
+	void Reset();
 };
+
 
 #endif

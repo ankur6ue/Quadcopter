@@ -15,6 +15,12 @@ otherwise accompanies this software in either electronic or hard copy form.
 #ifndef __QUADCOPTER__
 #define __QUADCOPTER__
 
+enum PIDType
+{
+	AttitudePIDControl = 0,
+	RatePIDControl
+};
+
 struct QuadStateDef
 {
 	float 	Yaw;
@@ -32,6 +38,7 @@ struct QuadStateDef
 	bool  	bMotorToggle;
 	int		Speed;
 	int		QuadStateFlag;
+	PIDType	ePIDType;
 };
 
 enum
@@ -58,7 +65,7 @@ extern bool				bIsKdSet;
 extern bool				bIsYawKpSet;
 extern bool				bIsYawKiSet;
 extern bool				bIsYawKdSet;
-
+extern bool				bIsPIDTypeSet;
 extern int				ESCPoweredTime;
 extern unsigned long	Now;
 extern unsigned long	Before;

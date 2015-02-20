@@ -13,6 +13,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
 #include <qwidget.h>
+#include "PIDTypeMenu.h"
 
 #define PITCH_CTRL_RANGE	45
 #define ROLL_CTRL_RANGE		45
@@ -28,6 +29,7 @@ struct EchoCommand;
 class MainWindow;
 class Joystick;
 class QThread;
+class PIDTypeMenu;
 
 class ArrowPadDef: public QWidget
 {
@@ -54,13 +56,38 @@ public:
 	int RollSetPoint;
 };
 
+struct CommonPIDControls // Stores PID Widgets that are common to both Rate/Attitude PID controller
+{
+	CommonPIDControls() {};
+	WheelBox	*pPitchKp;
+	WheelBox	*pPitchKi;
+	WheelBox	*pPitchKd;
+	WheelBox	*pYawKp;
+	WheelBox	*pYawKi;
+	WheelBox	*pYawKd;
+};
+
+struct AttitudePIDControls
+{
+	AttitudePIDControls():ePIDType(AttitudePIDControl){};
+	PIDType ePIDType;
+	CommonPIDControls* pCommonPIDCtrl;
+};
+
+struct RatePIDControls
+{
+	RatePIDControls():ePIDType(RatePIDControl){};
+	PIDType ePIDType;
+	CommonPIDControls* pCommonPIDCtrl;
+};
+
 class MainWindow : public QWidget
 {
     Q_OBJECT
 
 public:
     MainWindow( QWidget * = NULL );
-
+	~MainWindow();
 	typedef struct PIDParamsDef
 	{
 		float fKp;
@@ -68,11 +95,25 @@ public:
 		float fKd;
 	};
 	
+	typedef struct AttitudePIDParams
+	{
+		PIDParamsDef PitchPIDParams;
+		PIDParamsDef RollPIDParams;
+		PIDParamsDef YawPIDParams;
+	};
+
+	typedef struct RatePIDParams
+	{
+		PIDParamsDef PitchPIDParams;
+		PIDParamsDef RollPIDParams;
+		PIDParamsDef YawPIDParams;
+	};
+
     void	start();
     double	amplitude() const;
     double	frequency() const;
     double	signalInterval() const;
-	void	ReadPIDParams(PIDParamsDef& yparams, PIDParamsDef& pparams, PIDParamsDef& rparams);
+	void	ReadPIDParams(AttitudePIDParams&, RatePIDParams&);
 	void	ResetSetPoint();
 	// To set up the thread that runs the game controller input
 	void	SetupCtrlInput();
@@ -80,6 +121,10 @@ public:
 	void CreatePlots();
 	void CreatePlotControls();
 	void CreatePIDControls();
+	void CreateAttitudePIDControls();
+	void CreateRatePIDControls();
+	void CreateCommonPIDControls();
+	void SetPIDParams();
 	void CreateQuadStatePanel();
 	void CreateQuadControlPanel();
 	void ManageLayout();
@@ -113,62 +158,67 @@ public Q_SLOTS:
 	void motorToggleClicked();
 	// Handle game controller axis movement
 	void AxisMoved(long, long, long, int);
-	
+	void CreateMenuItems();
+	void PIDCtrlTypeChanged();
 private:
 
 	// Widget pointers. 
-    Knob		*pFrequencyKnob;
-    Knob		*pAmplitudeKnob;
-    WheelBox	*pTimerWheel;
-    WheelBox	*pIntervalWheel;
-	WheelBox	*pPitchSetPtWheel;
-	WheelBox	*pRollSetPtWheel;
-	WheelBox	*pPitchCtrlWheel;
-	WheelBox	*pRollCtrlWheel;
-	WheelBox	*pYawCtrlWheel;
-	WheelBox	*pSpeedWheel;
-	WheelBox	*pPitchKp;
-	WheelBox	*pPitchKi;
-	WheelBox	*pPitchKd;
-	WheelBox	*pYawKp;
-	WheelBox	*pYawKi;
-	WheelBox	*pYawKd;
-	QPushButton *pMotorToggle;
-	QLineEdit	*pQuadSpeed;
-	QLineEdit	*pQuadPower;
-	QLineEdit	*pQuadPKi; // Quad Pitch PID coefficients
-	QLineEdit	*pQuadPKp;
-	QLineEdit	*pQuadPKd;
-	QLineEdit	*pQuadRKi; // Quad Roll PID coefficients
-	QLineEdit	*pQuadRKp;
-	QLineEdit	*pQuadRKd;
-	QLineEdit	*pQuadYKi; // Quad Yaw PID coefficients
-	QLineEdit	*pQuadYKp;
-	QLineEdit	*pQuadYKd;
+    Knob				*pFrequencyKnob;
+    Knob				*pAmplitudeKnob;
+    WheelBox			*pTimerWheel;
+    WheelBox			*pIntervalWheel;
+	WheelBox			*pPitchSetPtWheel;
+	WheelBox			*pRollSetPtWheel;
+	WheelBox			*pPitchCtrlWheel;
+	WheelBox			*pRollCtrlWheel;
+	WheelBox			*pYawCtrlWheel;
+	AttitudePIDControls	*pAttPIDCtrl;
+	RatePIDControls		*pRatePIDCtrl;
+	CommonPIDControls	*pCommonPIDCtrl;
+
+	WheelBox			*pSpeedWheel;
+	QPushButton			*pMotorToggle;
+	QLineEdit			*pPIDType;
+	QLineEdit			*pQuadSpeed;
+	QLineEdit			*pQuadPower;
+	QLineEdit			*pQuadPKi; // Quad Pitch PID coefficients
+	QLineEdit			*pQuadPKp;
+	QLineEdit			*pQuadPKd;
+	QLineEdit			*pQuadRKi; // Quad Roll PID coefficients
+	QLineEdit			*pQuadRKp;
+	QLineEdit			*pQuadRKd;
+	QLineEdit			*pQuadYKi; // Quad Yaw PID coefficients
+	QLineEdit			*pQuadYKp;
+	QLineEdit			*pQuadYKd;
 
 	QCheckBox	*pFR, *pFL, *pBR, *pBL;
+
+	// PID Type Menu
+	PIDTypeMenu			*pPIDTypeMenu;
 
 	ArrowPadDef* pArrowPad;
 	// Widget state variables
 	bool		bMotorToggle;
-    Plot *y_plot;
-	Plot *p_plot;
-	Plot *r_plot;
+    Plot		*y_plot;
+	Plot		*p_plot;
+	Plot		*r_plot;
 
 	// Joystick pointer
-	Joystick* pJoystick;
+	Joystick	*pJoystick;
 	// Pointer to the thread that runs the joystick
-	QThread* pThread;
+	QThread		*pThread;
 	
-	double pamplitude;
-
-	PIDParamsDef PitchPIDParams;
-	PIDParamsDef RollPIDParams;
-	PIDParamsDef YawPIDParams;
-
+	double		pamplitude;
+	
 public:
 	// These are the set points we revert to when we reset the motors.
-	int DefaultPitchSetPoint;
-	int DefaultRollSetPoint;
+	int					DefaultPitchSetPoint;
+	int					DefaultRollSetPoint;
+	AttitudePIDParams	mAttPIDParams;
+	RatePIDParams		mRatePIDParams;
+	// These pointers are reset when the PID type is changed
+	PIDParamsDef		*pPitchPIDParams, *pYawPIDParams;
+	PIDType				ePIDType; // Rate or Attitude
+
 
 };

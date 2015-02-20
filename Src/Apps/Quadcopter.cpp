@@ -48,9 +48,9 @@ CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(200, "MotorCtrl");
 BeaconListener		cBeaconListener(1, "BeaconListener");
 
-AttitudePIDCtrl 	PitchCntrl;
-AttitudePIDCtrl 	YawCntrl;
-AttitudePIDCtrl 	RollCntrl;
+PIDController 		PitchCntrl;
+PIDController		YawCntrl;
+PIDController 		RollCntrl;
 
 ExceptionMgr		cExceptionMgr;
 
@@ -62,6 +62,7 @@ bool				bIsKdSet = false;
 bool				bIsYawKpSet = false;
 bool				bIsYawKiSet = false;
 bool				bIsYawKdSet = false;
+bool				bIsPIDTypeSet = false;
 int					ESCPoweredTime = 0;
 unsigned long		Now;
 unsigned long		Before;
@@ -99,6 +100,9 @@ void setup()
     SERIAL.begin(115200);
 //    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
     SERIAL.print("In Setup");
+    PitchCntrl.CreateControllers();
+    RollCntrl.CreateControllers();
+    YawCntrl.CreateControllers();
 
     cScheduler.RegisterTask(&cQuadStateLogger);
     cScheduler.RegisterTask(&cPIDStateLogger);
@@ -116,6 +120,8 @@ void setup()
     Imu.Init();
     Imu.DMPInit();
 
+    // Set default PIDController to be the Attitude controller
+    QuadState.ePIDType = AttitudePIDControl;
     StartupTime = millis();
 
 }
@@ -137,7 +143,10 @@ void loop()
 		Now = millis();
 	//	SERIAL.print("\nNew data arrived in "); SERIAL.print(Now - Before);
 		Before = millis();
-
+		// Get gyroscope data. Double is the same as float (4 bytes) on Arduino
+		float angles[6];
+		Imu.GetMotion6(angles);
+		float gyroX = angles[3]; float gyroY = angles[4]; float gyroZ = angles[5];
 		QuadState.Yaw = yaw; QuadState.Pitch = pitch; QuadState.Roll= roll;
 	//	QuadState.Kp = a1;
 		MPUInterruptCounter++;
@@ -146,11 +155,11 @@ void loop()
 		{
 			//kp = map_i(a1, 0, 512, 0, 100);
 			RollCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Roll 	= RollCntrl.Compute(roll);
+			QuadState.PID_Roll 	= RollCntrl.Compute(roll, gyroX);
 			PitchCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Pitch = PitchCntrl.Compute(pitch);
+			QuadState.PID_Pitch = PitchCntrl.Compute(pitch, gyroY);
 			YawCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Yaw 	= YawCntrl.Compute(yaw);
+			QuadState.PID_Yaw 	= YawCntrl.Compute(yaw, gyroZ);
 			cScheduler.RunTask(&cMotorCtrl);
 		}
 	}

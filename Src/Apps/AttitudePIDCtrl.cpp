@@ -16,7 +16,56 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "AttitudePIDCtrl.h"
 #include "arduino.h"
 
-double AttitudePIDCtrl::Compute(double input)
+void AttitudePIDCtrl::Reset()
+{
+	// Set all accumulated variables to 0
+	SetErrorSum(0.0);
+}
+
+void AttitudePIDCtrl::SetSpeed(int speed)
+{
+	QuadSpeed = speed;
+}
+
+void AttitudePIDCtrl::SetTunings(double kp, double ki, double kd)
+{
+   Kp = kp;
+   Ki = ki/1000;
+   Kd = kd*1000;
+}
+
+void AttitudePIDCtrl::SetErrorSum(double val)
+{
+	Errsum = val;
+}
+
+void AttitudePIDCtrl::SetLastError(double val)
+{
+	LastErr = val;
+}
+
+double AttitudePIDCtrl::GetErrorSum()
+{
+	return Errsum;
+}
+
+double AttitudePIDCtrl::GetSetPoint()
+{
+	return Setpoint;
+}
+
+void AttitudePIDCtrl::SetSetPoint(double _setPoint)
+{
+	Setpoint = _setPoint;
+}
+
+void AttitudePIDCtrl::SetNewSetpoint(double _setPoint)
+{
+	TargetSetpoint = _setPoint;
+	StepSize = (TargetSetpoint - Setpoint)/100;
+}
+
+double AttitudePIDCtrl::Compute(double input, double unused)
 {
 	// Did Setpoint change?
 	if (fabs(TargetSetpoint - Setpoint) > 2 * fabs(StepSize))

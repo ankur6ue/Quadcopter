@@ -127,6 +127,7 @@ void QuadStateLogger::SendQuadState()
 
 	Serialize("QS", "MotorToggle", QuadState.bMotorToggle);
 	Serialize("QS", "Speed", QuadState.Speed);
+	Serialize("QS", "PIDType", QuadState.ePIDType);
 	AttachSentinal();
 }
 

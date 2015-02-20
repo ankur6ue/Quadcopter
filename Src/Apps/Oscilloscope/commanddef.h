@@ -19,6 +19,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include <qrect.h>
 #include "plotiddef.h"
 #include <qreadwritelock.h>
+#include "PIDTypeMenu.h"
 
 struct EchoCommand;
 
@@ -56,14 +57,15 @@ enum DirtyFlags: int
 	PITCH				= 4,
 	ROLL				= 8,
 	MOTORTOGGLE			= 16,
-	PIpPARAMS			= 32,
+	PIDPARAMS			= 32,
 	MOTORSTATE			= 64,
 	PITCHSETPOINT		= 128,
 	ROLLSETPOINT		= 256,
 	YAWSETPOINT			= 512,
 	DEF_PITCHSETPOINT	= 1024,
 	DEF_ROLLSETPOINT	= 2048,
-	SEND_BEACON			= 4096
+	SEND_BEACON			= 4096,
+	PIDTYPE				= 8192
 };
 
 enum PIDFlags: int
@@ -150,6 +152,19 @@ public:
 		doUnlock();
 	}
 
+	void SetPIDType(PIDType pidType)
+	{
+		lock.lockForWrite();
+		ePIDType = pidType;
+		SetFlag(PIDTYPE);
+		doUnlock();
+	}
+
+	double GetPIDType()
+	{
+		ClearFlag(PIDTYPE);
+		return ePIDType;
+	}
 	void SetDefaultPitchSetpoint(double setPoint)
 	{
 		lock.lockForWrite();
@@ -224,7 +239,7 @@ public:
 	{
 		lock.lockForWrite();
 		PitchPIDParams.fKi = _ki;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Pitch_Ki);
 		doUnlock();
 	}
@@ -233,7 +248,7 @@ public:
 	{
 		lock.lockForWrite();
 		PitchPIDParams.fKp = _kp;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Pitch_Kp);
 		doUnlock();
 	}
@@ -242,7 +257,7 @@ public:
 	{
 		lock.lockForWrite();
 		PitchPIDParams.fKd = _kd;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Pitch_Kd);
 		doUnlock();
 	}
@@ -251,7 +266,7 @@ public:
 	{
 		lock.lockForWrite();
 		RollPIDParams.fKi = _ki;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Roll_Ki);
 		doUnlock();
 	}
@@ -260,7 +275,7 @@ public:
 	{
 		lock.lockForWrite();
 		RollPIDParams.fKp = _kp;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Roll_Kp);
 		doUnlock();
 	}
@@ -269,7 +284,7 @@ public:
 	{
 		lock.lockForWrite();
 		RollPIDParams.fKd = _kd;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Roll_Kd);
 		doUnlock();
 	}
@@ -278,7 +293,7 @@ public:
 	{
 		lock.lockForWrite();
 		YawPIDParams.fKi = _ki;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Yaw_Ki);
 		doUnlock();
 	}
@@ -287,7 +302,7 @@ public:
 	{
 		lock.lockForWrite();
 		YawPIDParams.fKp = _kp;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Yaw_Kp);
 		doUnlock();
 	}
@@ -296,70 +311,70 @@ public:
 	{
 		lock.lockForWrite();
 		YawPIDParams.fKd = _kd;
-		SetFlag(PIpPARAMS);
+		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Yaw_Kd);
 		doUnlock();
 	}
 
 	float GetPitchKp()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Pitch_Kp);
 		return PitchPIDParams.fKp;
 	}
 
 	float GetPitchKi()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Pitch_Ki);
 		return PitchPIDParams.fKi;
 	}
 
 	float GetPitchKd()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Pitch_Kd);
 		return PitchPIDParams.fKd;
 	}
 
 	float GetRollKp()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Roll_Kp);
 		return RollPIDParams.fKp;
 	}
 
 	float GetRollKi()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Roll_Ki);
 		return RollPIDParams.fKi;
 	}
 
 	float GetRollKd()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Roll_Kd);
 		return RollPIDParams.fKd;
 	}
 
 	float GetYawKp()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Yaw_Kp);
 		return YawPIDParams.fKp;
 	}
 
 	float GetYawKi()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Yaw_Ki);
 		return YawPIDParams.fKi;
 	}
 
 	float GetYawKd()
 	{
-		ClearFlag(PIpPARAMS);
+		ClearFlag(PIDPARAMS);
 		ClearPIDParamsFlag(Yaw_Kd);
 		return YawPIDParams.fKd;
 	}
@@ -453,6 +468,7 @@ private:
 	int		RollSetPoint;
 	int		DefaultRollSetPoint;
 	int		YawSetPoint;
+	PIDType	ePIDType;
 
 	struct PitchPIDParamsDef
 	{

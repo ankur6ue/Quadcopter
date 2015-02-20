@@ -14,39 +14,97 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
 
-#ifndef PIDCONTROL_h
-#define PIDCONTROL_h
+#include "RatePIDCtrl.h"
+#include "arduino.h"
 
-class PIDController
+void RatePIDCtrl::Reset()
 {
-public:
-	PIDController();
+	SetErrorSum(0.0);
+}
 
-	unsigned long lastTime;
-	double 	Input, Output, Setpoint;
-	double 	Errsum, LastErr;
-	double 	Kp, Ki, Kd;
-	double 	TargetSetpoint;
-	double 	StepSize;
-	int 	QuadSpeed;
+void RatePIDCtrl::SetSpeed(int speed)
+{
+	QuadSpeed = speed;
+}
 
-	double Compute(double input);
+void RatePIDCtrl::SetTunings(double kp, double ki, double kd)
+{
+   Kp = kp;
+   Ki = ki/1000;
+   Kd = kd*1000;
+}
 
-	void SetTunings(double Kp, double Ki, double Kd);
+void RatePIDCtrl::SetErrorSum(double val)
+{
+	Errsum = val;
+}
 
-	void SetSetPoint(double _setPoint);
+void RatePIDCtrl::SetLastError(double val)
+{
+	LastErr = val;
+}
 
-	void SetNewSetpoint(double _setPoint);
+double RatePIDCtrl::GetErrorSum()
+{
+	return Errsum;
+}
 
-	void SetSpeed(int);
+double RatePIDCtrl::GetSetPoint()
+{
+	return Setpoint;
+}
 
-	double GetSetPoint();
+void RatePIDCtrl::SetSetPoint(double _setPoint)
+{
+	Setpoint = _setPoint;
+}
 
-	void SetErrorSum(double val);
+void RatePIDCtrl::SetNewSetpoint(double _setPoint)
+{
+	TargetSetpoint = _setPoint;
+	StepSize = (TargetSetpoint - Setpoint)/100;
+}
 
-	void SetLastError(double val);
+double RatePIDCtrl::Compute(double input, double unused)
+{
+	// Did Setpoint change?
+	if (fabs(TargetSetpoint - Setpoint) > 2 * fabs(StepSize))
+	{
+		Setpoint += StepSize;
+	}
+	/*How long since we last calculated*/
+	unsigned long now = millis();
+	double timeChange = (double) (now - lastTime);
 
-	double GetErrorSum();
-};
+	/*Compute all the working error variables*/
+	double error = (Setpoint - input);
+	// Start accumulating I error only when the Quad is approach lift off speed. Otherwise there could be a large accumulated
+	// I error before motors start leading to erratic (and potentially dangerous behavior)
+	if (QuadSpeed > 500)
+	{
+		Errsum += (error) * timeChange;
+		// Cap Errsum
+		Errsum = Errsum > 0? min(20000, Errsum):max(-20000, Errsum);
+	}
 
-#endif
+	double dErr = (error - LastErr) / timeChange;
+	/*Compute PID Output*/
+	double currentKp = max(0, Kp * (1));
+	Output = currentKp * error + Ki * Errsum + Kd * dErr;
+
+	/*Remember some variables for next time*/
+	LastErr = error;
+	lastTime = now;
+
+	return ApplySafeCheck(Output);
+}
+
+double RatePIDCtrl::ApplySafeCheck(double Output)
+{
+	if (fabs(LastOutput) > 150 && fabs(Output) > 150)
+	{
+		return 0;
+	}
+	LastOutput = Output;
+	return Output;
+}
