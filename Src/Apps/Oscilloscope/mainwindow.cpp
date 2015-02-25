@@ -42,8 +42,8 @@ void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& r
 		fscanf(fp, "Rate PitchPIDParams %f %f %f\n", &ratePIDParams.PitchPIDParams.fKp, &ratePIDParams.PitchPIDParams.fKi, &ratePIDParams.PitchPIDParams.fKd); 
 		fscanf(fp, "Rate RollPIDParams %f %f %f\n", &ratePIDParams.RollPIDParams.fKp, &ratePIDParams.RollPIDParams.fKi, &ratePIDParams.RollPIDParams.fKd); 
 
-		fscanf(fp, "DefaultRollSetPoint %d\n", &DefaultRollSetPoint); 
-		fscanf(fp, "DefaultPitchSetPoint %d\n", &DefaultPitchSetPoint); 
+		fscanf(fp, "RollHoverAttitude %d\n", &RollHoverAttitude); 
+		fscanf(fp, "PitchHoverAttitude %d\n", &PitchHoverAttitude); 
 	}
 	else
 	{
@@ -54,7 +54,7 @@ void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& r
 		ratePIDParams.YawPIDParams.fKp = 12; ratePIDParams.YawPIDParams.fKi = 0; ratePIDParams.YawPIDParams.fKd = 5;
 		ratePIDParams.PitchPIDParams.fKp = 24; ratePIDParams.PitchPIDParams.fKi = 3; ratePIDParams.PitchPIDParams.fKd = 10;
 		ratePIDParams.RollPIDParams.fKp = 24; ratePIDParams.RollPIDParams.fKi = 3; ratePIDParams.RollPIDParams.fKd = 10;
-		DefaultPitchSetPoint = -4; DefaultRollSetPoint = -5;
+		PitchHoverAttitude = -4; RollHoverAttitude = -5;
 	}
 }
 
@@ -117,9 +117,9 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	connect( pCommonPIDCtrl->pYawKd, SIGNAL( valueChanged( double ) ), SLOT( YawKdChanged( double ) ) );
 
-	connect( pPitchSetPtWheel, SIGNAL( valueChanged( double ) ), SLOT( DefaultPitchSetPtChanged( double ) ) );
+	connect( pPitchHoverAngleWheel, SIGNAL( valueChanged( double ) ), SLOT( PitchHoverAngleChanged( double ) ) );
 
-	connect( pRollSetPtWheel, SIGNAL( valueChanged( double ) ), SLOT( DefaultRollSetPtChanged( double ) ) );
+	connect( pRollHoverAngleWheel, SIGNAL( valueChanged( double ) ), SLOT( RollHoverAngleChanged( double ) ) );
 
 	connect( pPitchCtrlWheel, SIGNAL( valueChanged( double ) ), SLOT( PitchCtrlChanged( double ) ) );
 
@@ -230,35 +230,35 @@ void MainWindow::speedChanged(double speed)
 }
 
 // Handlers for user input
-void MainWindow::DefaultPitchSetPtChanged(double setPoint)
+void MainWindow::PitchHoverAngleChanged(double setPoint)
 {
-	DefaultPitchSetPoint = setPoint;
-//	UserCommands::Instance().SetPitchSetpoint(setPoint);
+	PitchHoverAttitude = setPoint;
+//	UserCommands::Instance().SetPitchDisplacement(setPoint);
 }
 
 // Handlers for user input
-void MainWindow::DefaultRollSetPtChanged(double setPoint)
+void MainWindow::RollHoverAngleChanged(double setPoint)
 {
-	DefaultRollSetPoint = setPoint;
-//	UserCommands::Instance().SetRollSetpoint(setPoint);
+	RollHoverAttitude = setPoint;
+//	UserCommands::Instance().SetRollDisplacement(setPoint);
 }
 
 // Handlers for user input
 void MainWindow::PitchCtrlChanged(double setPoint)
 {
-	UserCommands::Instance().SetPitchSetpoint(setPoint);
+	UserCommands::Instance().SetPitchDisplacement(setPoint);
 }
 
 // Handlers for user input
 void MainWindow::RollCtrlChanged(double setPoint)
 {
-	UserCommands::Instance().SetRollSetpoint(setPoint);
+	UserCommands::Instance().SetRollDisplacement(setPoint);
 }
 
 // Handlers for user input
 void MainWindow::YawCtrlChanged(double setPoint)
 {
-	UserCommands::Instance().SetYawSetpoint(setPoint);
+	UserCommands::Instance().SetYawDisplacement(setPoint);
 }
 
 void MainWindow::PitchKiChanged(double ki)
@@ -322,7 +322,7 @@ void MainWindow::motorToggleClicked()
 		UserCommands::Instance().SetYawKp(pYawPIDParams->fKp);
 		UserCommands::Instance().SetYawKd(pYawPIDParams->fKd);
 		
-		//UserCommands::Instance().SetSendBeaconFlag();
+		UserCommands::Instance().SetSendBeaconFlag();
 		ResetSetPoint();
 		pFL->setCheckState(Qt::Checked);
 		pBL->setCheckState(Qt::Checked);
@@ -334,10 +334,10 @@ void MainWindow::motorToggleClicked()
 
 void MainWindow::ResetSetPoint()
 {
-	UserCommands::Instance().SetDefaultRollSetpoint(DefaultRollSetPoint);
-	UserCommands::Instance().SetDefaultPitchSetpoint(DefaultPitchSetPoint);
-	UserCommands::Instance().SetRollSetpoint(DefaultRollSetPoint);
-	UserCommands::Instance().SetPitchSetpoint(DefaultPitchSetPoint);
+	UserCommands::Instance().SetRollHoverAttitude(RollHoverAttitude);
+	UserCommands::Instance().SetPitchHoverAttitude(PitchHoverAttitude);
+	UserCommands::Instance().SetRollDisplacement(RollHoverAttitude);
+	UserCommands::Instance().SetPitchDisplacement(PitchHoverAttitude);
 }
 void MainWindow::FRStateChanged( int state)
 {

@@ -16,16 +16,20 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "PIDControl.h"
 #include "SoftwareSerial.h"
 #include "SerialDef.h"
-#include "Quadcopter.h"
 #include "AttitudePIDCtrl.h"
 #include "RatePIDCtrl.h"
 
-PIDControllerImpl::PIDControllerImpl()
+PIDControllerImpl::PIDCtrlData::PIDCtrlData()
 {
-	lastTime = 0; Input = 0; Output = 0; Setpoint = 0;
+	Input = 0; Output = 0; AttitudeEF = 0; AttitudeBF = 0;
 	Errsum = 0; LastErr = 0;
 	Kp = 0; Ki = 0; Kd = 0;
-	TargetSetpoint = 0; StepSize = 0; QuadSpeed = 0;
+	TargetAttitudeEF = 0; TargetAttitudeBF = 0; StepSize = 0;
+}
+
+PIDControllerImpl::PIDControllerImpl()
+{
+	QuadSpeed = 0; LastTime = 0;
 }
 
 PIDController::PIDController()
@@ -48,10 +52,16 @@ void PIDController::RegisterPIDController(int index, PIDControllerImpl* pImpl)
 	// else raise exception
 }
 
-double PIDController::Compute(double angle, double angVel)
+void PIDController::Compute(double* angles, double* angVels, double* output)
 {
 	int pidIndex = QuadState.ePIDType;
-	return pidCtrlImpl[pidIndex]->Compute(angle, angVel);
+	pidCtrlImpl[pidIndex]->Compute(angles, angVels, output);
+}
+
+void PIDController::SetErrSum(double val, Axis _eAxis)
+{
+	int pidIndex = QuadState.ePIDType;
+	pidCtrlImpl[pidIndex]->SetErrSum(val, _eAxis);
 }
 
 void PIDController::SetSpeed(int speed)
@@ -60,22 +70,10 @@ void PIDController::SetSpeed(int speed)
 	pidCtrlImpl[pidIndex]->SetSpeed(speed);
 }
   
-void PIDController::SetTunings(double kp, double ki, double kd)
+void PIDController::SetTunings(double kp, double ki, double kd, Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetTunings(kp, ki, kd);
-}
-
-void PIDController::SetErrorSum(double val)
-{
-	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetErrorSum(val);
-}
-
-void PIDController::SetLastError(double val)
-{
-	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetLastError(val);
+	pidCtrlImpl[pidIndex]->SetTunings(kp, ki, kd, _eAxis);
 }
 
 void PIDController::Reset()
@@ -84,26 +82,20 @@ void PIDController::Reset()
 	pidCtrlImpl[pidIndex]->Reset();
 }
 
-double PIDController::GetErrorSum()
+double PIDController::GetAttitude(Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
-	return pidCtrlImpl[pidIndex]->GetErrorSum();
+	return pidCtrlImpl[pidIndex]->GetAttitude(_eAxis);
 }
 
-double PIDController::GetSetPoint()
+void PIDController::OnControlInput(double userInput, Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
-	return pidCtrlImpl[pidIndex]->GetSetPoint();
+	pidCtrlImpl[pidIndex]->OnControlInput(userInput, _eAxis);
 }
 
-void PIDController::SetSetPoint(double _setPoint)
+void PIDController::SetHoverAttitude(double attitude, Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetSetPoint(_setPoint);
-}
-
-void PIDController::SetNewSetpoint(double _setPoint)
-{
-	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetNewSetpoint(_setPoint);
+	pidCtrlImpl[pidIndex]->SetHoverAttitude(attitude, _eAxis);
 }

@@ -56,7 +56,7 @@ SamplingThread::SamplingThread( QObject *parent ):
 int SamplingThread::SetupSerialPort()
 {
 	int success = false;
-	Sp = new Serial("\\\\.\\COM20",115200);    // adjust as needed
+	Sp = new Serial("\\\\.\\COM21",115200);    // adjust as needed
 
 	if (Sp->IsConnected())
 	{
@@ -109,6 +109,7 @@ void SamplingThread::sample( double elapsed )
 		{
 			char* next_token = NULL;
 			char* token;
+		//	printf("b%d\n", BytesRead);
 			// Prepend new characters read with lastSnippet
 			int lastSnippetSize = strlen(cLastSnippet);
 			if (lastSnippetSize)
@@ -118,7 +119,8 @@ void SamplingThread::sample( double elapsed )
 				memcpy(cIncomingData, cLastSnippet, lastSnippetSize);
 				memcpy(cIncomingData + lastSnippetSize, tmp, BytesRead);
 				// We used this snippet, so put a terminating null in the beginning
-				cLastSnippet[0] = '\0';
+				memset(cLastSnippet, 0, 2000);
+				memset(tmp, 0, 2000);
 			}
 			// We check for the last character in the incoming data here and not after passing cIncomingData to
 			// strtok as strtok modifies the data passed to it.
@@ -139,8 +141,11 @@ void SamplingThread::sample( double elapsed )
 			if (lastChar == 'z')
 			{
 				// Sentinal was found, this means that the last snippet is a full command packet. Go ahead and parse it
-				pDataParser->ParseData(token, strlen(token));
-				pDataParser->Plot(elapsed);
+				if (token)
+				{
+					pDataParser->ParseData(token, strlen(token));
+					pDataParser->Plot(elapsed);
+				}
 			}
 			else
 			{
@@ -200,48 +205,48 @@ void SamplingThread::sample( double elapsed )
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(DEF_PITCHSETPOINT))
+			if (commandInstance->IsDirty(PITCHHOVERATTITUDE))
 			{
 				commandInstance->doLock();
-				double defSetPoint = commandInstance->GetDefaultPitchSetpoint()*DEGTORAD;
+				double pitchHoverAtt = commandInstance->GetPitchHoverAttitude()*DEGTORAD;
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef("DefPitchSetPt", defSetPoint);
+				pcommandDef = new CommandDef("PitchHoverAtt", pitchHoverAtt);
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(DEF_ROLLSETPOINT))
+			if (commandInstance->IsDirty(ROLLHOVERATTITUDE))
 			{
 				commandInstance->doLock();
-				double defSetPoint = commandInstance->GetDefaultRollSetpoint()*DEGTORAD;
+				double rollHoverAtt = commandInstance->GetRollHoverAttitude()*DEGTORAD;
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef("DefRollSetPt", defSetPoint);
+				pcommandDef = new CommandDef("RollHoverAtt", rollHoverAtt);
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(PITCHSETPOINT))
+			if (commandInstance->IsDirty(PITCHDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double newSetPoint = commandInstance->GetPitchSetpoint()*DEGTORAD;
+				double disp = commandInstance->GetPitchDisplacement()*DEGTORAD;
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef("PitchSetPt", newSetPoint);
+				pcommandDef = new CommandDef("PitchDisp", disp);
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(ROLLSETPOINT))
+			if (commandInstance->IsDirty(ROLLDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double newSetPoint = commandInstance->GetRollSetpoint()*DEGTORAD;
+				double disp = commandInstance->GetRollDisplacement()*DEGTORAD;
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef("RollSetPt", newSetPoint);
+				pcommandDef = new CommandDef("RollDisp", disp);
 				commandList.push_back(pcommandDef);
 			}
 
-			if (commandInstance->IsDirty(YAWSETPOINT))
+			if (commandInstance->IsDirty(YAWDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double newSetPoint = commandInstance->GetYawSetpoint()*DEGTORAD;
+				double disp = commandInstance->GetYawDisplacement()*DEGTORAD;
 				commandInstance->doUnlock();
-				pcommandDef = new CommandDef("YawSetPt", newSetPoint);
+				pcommandDef = new CommandDef("YawDisp", disp);
 				commandList.push_back(pcommandDef);
 			}
 

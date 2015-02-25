@@ -20,7 +20,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 ArrowPadDef::ArrowPadDef(MainWindow* pmainWindow) : QWidget(pmainWindow)
 {
 	pMainWindow		= pmainWindow;
-	PitchSetPoint	= 0;
+	PitchDisplacement	= 0;
 	RollSetPoint	= 0;
 };
 
@@ -34,36 +34,36 @@ void ArrowPadDef::ConnectSignals()
 
 void ArrowPadDef::ButtonUpClicked()
 {
-	PitchSetPoint += 5;
-	UserCommands::Instance().SetPitchSetpoint(PitchSetPoint);
+	PitchDisplacement += 5;
+	UserCommands::Instance().SetPitchDisplacement(PitchDisplacement);
 }
 
 void ArrowPadDef::ButtonDownClicked()
 {
-	PitchSetPoint -= 5;
-	UserCommands::Instance().SetPitchSetpoint(PitchSetPoint);
+	PitchDisplacement -= 5;
+	UserCommands::Instance().SetPitchDisplacement(PitchDisplacement);
 }
 
 void ArrowPadDef::ButtonLeftClicked()
 {
 	RollSetPoint += 5;
-	UserCommands::Instance().SetRollSetpoint(RollSetPoint);
+	UserCommands::Instance().SetRollDisplacement(RollSetPoint);
 }
 
 void ArrowPadDef::ButtonRightClicked()
 {
 	RollSetPoint -= 5;
-	UserCommands::Instance().SetRollSetpoint(RollSetPoint);
+	UserCommands::Instance().SetRollDisplacement(RollSetPoint);
 }
 
 void ArrowPadDef::ResetSetPoint()
 {
-	UserCommands::Instance().SetDefaultRollSetpoint(pMainWindow->DefaultRollSetPoint);
-	UserCommands::Instance().SetDefaultPitchSetpoint(pMainWindow->DefaultPitchSetPoint);
-	RollSetPoint = pMainWindow->DefaultRollSetPoint;
-	PitchSetPoint = pMainWindow->DefaultPitchSetPoint;
-	UserCommands::Instance().SetRollSetpoint(RollSetPoint);
-	UserCommands::Instance().SetPitchSetpoint(PitchSetPoint);
+	UserCommands::Instance().SetRollHoverAttitude(pMainWindow->RollHoverAttitude);
+	UserCommands::Instance().SetPitchHoverAttitude(pMainWindow->PitchHoverAttitude);
+	RollSetPoint = pMainWindow->RollHoverAttitude;
+	PitchDisplacement = pMainWindow->PitchHoverAttitude;
+	UserCommands::Instance().SetRollDisplacement(RollSetPoint);
+	UserCommands::Instance().SetPitchDisplacement(PitchDisplacement);
 
 }
 

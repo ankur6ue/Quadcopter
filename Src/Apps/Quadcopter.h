@@ -21,6 +21,13 @@ enum PIDType
 	RatePIDControl
 };
 
+enum Axis
+{
+	Axis_Yaw = 0,
+	Axis_Pitch,
+	Axis_Roll
+};
+
 struct QuadStateDef
 {
 	float 	Yaw;

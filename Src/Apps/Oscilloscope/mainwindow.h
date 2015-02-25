@@ -52,7 +52,7 @@ public Q_SLOTS:
 
 public:
 	MainWindow* pMainWindow;
-	int PitchSetPoint;
+	int PitchDisplacement;
 	int RollSetPoint;
 };
 
@@ -139,8 +139,8 @@ public Q_SLOTS:
     void setAmplitude( double );
 	void textChanged(const QString &);
 	void speedChanged(double);
-	void DefaultPitchSetPtChanged(double);
-	void DefaultRollSetPtChanged(double);
+	void PitchHoverAngleChanged(double);
+	void RollHoverAngleChanged(double);
 	void PitchCtrlChanged(double);
 	void RollCtrlChanged(double);
 	void YawCtrlChanged(double);
@@ -167,8 +167,8 @@ private:
     Knob				*pAmplitudeKnob;
     WheelBox			*pTimerWheel;
     WheelBox			*pIntervalWheel;
-	WheelBox			*pPitchSetPtWheel;
-	WheelBox			*pRollSetPtWheel;
+	WheelBox			*pPitchHoverAngleWheel;
+	WheelBox			*pRollHoverAngleWheel;
 	WheelBox			*pPitchCtrlWheel;
 	WheelBox			*pRollCtrlWheel;
 	WheelBox			*pYawCtrlWheel;
@@ -212,8 +212,8 @@ private:
 	
 public:
 	// These are the set points we revert to when we reset the motors.
-	int					DefaultPitchSetPoint;
-	int					DefaultRollSetPoint;
+	int					PitchHoverAttitude;
+	int					RollHoverAttitude;
 	AttitudePIDParams	mAttPIDParams;
 	RatePIDParams		mRatePIDParams;
 	// These pointers are reset when the PID type is changed

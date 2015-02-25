@@ -24,10 +24,11 @@ class BeaconListener: public Task
 public:
 	BeaconListener(int frequency, const char* name): Task(frequency, name){}
 	virtual unsigned long Run();
-	void 	SetBeaconReceived() { bBeaconReceived = true; }
+	void 	SetBeaconReceived();
 	bool	IsBeaconReceived() { return bBeaconReceived; }
-
+	bool	Reset() { bBeaconReceived = true; bLastBeaconReceived = true; }
 	bool 	bBeaconReceived;
+	bool	bLastBeaconReceived;
 };
 
 #endif

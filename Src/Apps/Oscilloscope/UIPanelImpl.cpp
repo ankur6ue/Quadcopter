@@ -155,10 +155,10 @@ void MainWindow::CreateQuadControlPanel()
 	palette2->setColor(QPalette::ButtonText, Qt::Key_Green);
 	// Groubox for the Pitch/Yaw Control
 
-	pPitchSetPtWheel = new WheelBox( "Pitch Setpoint", -25, 25, 1, this );
-	pRollSetPtWheel = new WheelBox( "Roll Setpoint", -25, 25, 1, this );
-	pPitchSetPtWheel->setValue(DefaultPitchSetPoint);
-	pRollSetPtWheel->setValue(DefaultRollSetPoint);
+	pPitchHoverAngleWheel = new WheelBox( "Pitch Hover Angle", -25, 25, 1, this );
+	pRollHoverAngleWheel = new WheelBox( "Roll Hover Angle", -25, 25, 1, this );
+	pPitchHoverAngleWheel->setValue(PitchHoverAttitude);
+	pRollHoverAngleWheel->setValue(RollHoverAttitude);
 
 	pPitchCtrlWheel	= new WheelBox( "Pitch Ctrl", -PITCH_CTRL_RANGE, PITCH_CTRL_RANGE, 1, this );
 	pRollCtrlWheel	= new WheelBox( "Roll Ctrl", -ROLL_CTRL_RANGE, ROLL_CTRL_RANGE, 1, this );
@@ -280,11 +280,11 @@ void MainWindow::ManageLayout()
 	vLayout2c->addWidget( pPIDTypeLabel, 6, 0, 1, 2, Qt::AlignLeft);
 	vLayout2c->addWidget( pPIDType, 6, 2, 1, 2, Qt::AlignLeft);
 
-	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch SetPoints", this);
+	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch Displacements", this);
 	QGridLayout* vLayout3a = new QGridLayout();
 	gpBox3a->setLayout(vLayout3a);
 
-	QGroupBox* gpBox3b = new QGroupBox("Default Roll/Pitch Control", this);
+	QGroupBox* gpBox3b = new QGroupBox("Roll/Pitch Hover Attitude", this);
 	QGridLayout* vLayout3b = new QGridLayout();
 	gpBox3b->setLayout(vLayout3b);
 
@@ -300,8 +300,8 @@ void MainWindow::ManageLayout()
 	vLayout3a->addWidget( pPitchCtrlWheel, 1, 0, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pYawCtrlWheel, 2, 0, 1, 1, Qt::AlignLeft);
 
-	vLayout3b->addWidget( pRollSetPtWheel, 0, 0, 1, 1, Qt::AlignLeft);
-	vLayout3b->addWidget( pPitchSetPtWheel, 1, 0, 1, 1, Qt::AlignLeft);
+	vLayout3b->addWidget( pRollHoverAngleWheel, 0, 0, 1, 1, Qt::AlignLeft);
+	vLayout3b->addWidget( pPitchHoverAngleWheel, 1, 0, 1, 1, Qt::AlignLeft);
 
 	vLayout3c->addWidget (pFR, 2, 0, 1, 1, Qt::AlignHCenter);
 	vLayout3c->addWidget (pFL, 2, 1, 1, 1, Qt::AlignHCenter);

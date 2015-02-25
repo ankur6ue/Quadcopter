@@ -16,6 +16,8 @@ otherwise accompanies this software in either electronic or hard copy form.
 #ifndef PIDCONTROL_h
 #define PIDCONTROL_h
 
+#include "quadcopter.h"
+
 #define NUMPIDCONTROLLERS 2 // Attitude Controller, Rate Controller
 
 class PIDControllerImpl
@@ -25,33 +27,40 @@ public:
 
 	~PIDControllerImpl(){};
 
-	virtual double Compute(double, double) {return 0;};
+	virtual void Compute(double* angles, double* angVels, double* output) {};
 
-	virtual void SetTunings(double Kp, double Ki, double Kd){};
+	virtual void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis) {};
 
-	virtual void SetSetPoint(double _setPoint){};
+	// Used specifically to set the accumulated error to zero when Ki is changed to prevent sudden jumps in PID output
+	virtual void SetErrSum(double val, Axis _eAxis) {};
 
-	virtual void SetNewSetpoint(double _setPoint){};
+	virtual double GetAttitude(Axis _eAxis) {return 0.0; };
 
-	virtual void SetSpeed(int){};
+	// Called when user input along a particular axis arrives
+	virtual void OnControlInput(double userInput, Axis _eAxis) {};
 
-	virtual double GetSetPoint() {return 0.0; };
+	virtual void SetHoverAttitude(double attitude, Axis _eAxis) {};
 
-	virtual void SetErrorSum(double val) {};
-
-	virtual void SetLastError(double val) {};
-
-	virtual double GetErrorSum() { return 0.0; };
+	virtual void SetSpeed(int) {};
 
 	virtual void Reset() {};
 
-	unsigned long lastTime;
-	double 	Input, Output, Setpoint;
-	double 	Errsum, LastErr;
-	double 	Kp, Ki, Kd;
-	double 	TargetSetpoint;
-	double 	StepSize;
-	int 	QuadSpeed;
+	struct PIDCtrlData
+	{
+		PIDCtrlData();
+		double 	Input, Output, AttitudeBF, AttitudeEF;
+		double 	Errsum, LastErr;
+		double 	Kp, Ki, Kd;
+		double 	TargetAttitudeBF; // Body Frame Target Attitude
+		double 	TargetAttitudeEF; // Earth Frame Target Attitude
+		double 	HoverAttitudeBF;
+		double	HoverAttitudeEF;
+		double 	StepSize;
+	} PIDCtrlData[3]; // 0: Yaw, 1: Pitch, 2: Roll
+
+	int 			QuadSpeed;
+	unsigned long 	LastTime;
+
 };
 
 class PIDController
@@ -65,23 +74,21 @@ public:
 
 	void CreateControllers();
 
-	void SetTunings(double Kp, double Ki, double Kd);
+	void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis);
 
-	void SetSetPoint(double _setPoint);
+	// Used specifically to set the accumulated error to zero when Ki is changed to prevent sudden jumps in PID output
+	void SetErrSum(double val, Axis _eAxis);
 
-	void SetNewSetpoint(double _setPoint);
+	double GetAttitude(Axis _eAxis);
+
+	// Called when user input along a particular axis arrives
+	void OnControlInput(double userInput, Axis _eAxis);
+
+	void SetHoverAttitude(double attitude, Axis _eAxis);
 
 	void SetSpeed(int);
 
-	double GetSetPoint();
-
-	void SetErrorSum(double val);
-
-	void SetLastError(double val);
-
-	double GetErrorSum();
-
-	double Compute(double, double);
+	void Compute(double* angles, double* angVels, double* output);
 
 	void Reset();
 };

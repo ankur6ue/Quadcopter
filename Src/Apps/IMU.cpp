@@ -301,7 +301,7 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 			pitch = YPR[1];
 			roll = YPR[2];
 			// TODO: perhaps return false if DoSanityCheck fails
-			DoSanityCheck(yaw, pitch, roll);
+		//	DoSanityCheck(yaw, pitch, roll);
 			return true;
 		}
 	}

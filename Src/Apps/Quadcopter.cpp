@@ -43,14 +43,12 @@ Scheduler 			cScheduler;
 
 QuadStateLogger 	cQuadStateLogger(0.8, &cLog1, "QuadStateLogger");
 PIDStateLogger		cPIDStateLogger(9, &cLog2, "PIDStateLogger");
-ExceptionLogger		cExceptionLogger(0.5, NULL, "ExceptionLogger");
+ExceptionLogger		cExceptionLogger(1, NULL, "ExceptionLogger");
 CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(200, "MotorCtrl");
 BeaconListener		cBeaconListener(1, "BeaconListener");
 
-PIDController 		PitchCntrl;
-PIDController		YawCntrl;
-PIDController 		RollCntrl;
+PIDController 		PIDCntrl;
 
 ExceptionMgr		cExceptionMgr;
 
@@ -100,9 +98,7 @@ void setup()
     SERIAL.begin(115200);
 //    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
     SERIAL.print("In Setup");
-    PitchCntrl.CreateControllers();
-    RollCntrl.CreateControllers();
-    YawCntrl.CreateControllers();
+    PIDCntrl.CreateControllers();
 
     cScheduler.RegisterTask(&cQuadStateLogger);
     cScheduler.RegisterTask(&cPIDStateLogger);
@@ -112,7 +108,7 @@ void setup()
     /// Motors must be initialized first, otherwise the ESC will see inconsistent voltage on the PWM pin. They should
     /// see the ESCLow setting set during ESC calibration.
     cMotorCtrl.InitMotors();
-
+    cBeaconListener.Stop(); // Only listen for beacon when the motors are on
     // Clear all exceptions
 
     cExceptionMgr.ClearExceptionFlag();
@@ -129,13 +125,8 @@ void setup()
 void loop()
 {
 	float yaw, pitch, roll;
+	float angVel[6]; float angles[3]; float output[3];
 
-//	Imu.GetMotion6(angles);
-//	PrintData(angles, 6);
-
-
-//	int a0 = ReadPinA0(); // Factors debounce
-//	int a1 = analogRead(A1); // Used to set Kp
 	cScheduler.Tick();
 
 	if (Imu.GetYPR(yaw, pitch, roll)) // Interrupts arrive in roughly 10000 microsec ~ 100HZ.
@@ -144,9 +135,8 @@ void loop()
 	//	SERIAL.print("\nNew data arrived in "); SERIAL.print(Now - Before);
 		Before = millis();
 		// Get gyroscope data. Double is the same as float (4 bytes) on Arduino
-		float angles[6];
-		Imu.GetMotion6(angles);
-		float gyroX = angles[3]; float gyroY = angles[4]; float gyroZ = angles[5];
+		angles[0] = yaw; angles[1] = pitch; angles[2] = roll;
+		Imu.GetMotion6(angVel);
 		QuadState.Yaw = yaw; QuadState.Pitch = pitch; QuadState.Roll= roll;
 	//	QuadState.Kp = a1;
 		MPUInterruptCounter++;
@@ -154,12 +144,12 @@ void loop()
 		if (bIsPIDSetup)
 		{
 			//kp = map_i(a1, 0, 512, 0, 100);
-			RollCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Roll 	= RollCntrl.Compute(roll, gyroX);
-			PitchCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Pitch = PitchCntrl.Compute(pitch, gyroY);
-			YawCntrl.SetSpeed(QuadState.Speed);
-			QuadState.PID_Yaw 	= YawCntrl.Compute(yaw, gyroZ);
+			cBeaconListener.Start();
+			PIDCntrl.SetSpeed(QuadState.Speed);
+			PIDCntrl.Compute((double*)angles, (double*)&angVel[3], (double*)output);
+			QuadState.PID_Yaw 		= output[0];
+			QuadState.PID_Pitch 	= output[1];
+			QuadState.PID_Roll 		= output[2];
 			cScheduler.RunTask(&cMotorCtrl);
 		}
 	}

@@ -17,9 +17,16 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "RatePIDCtrl.h"
 #include "arduino.h"
 
+/* We might want the controller to maintain a certain roll/pitch angle and a yaw rate or certain roll/pitch/yaw angles
+ * or any combination thereof. The implementation for the various combinations are in AC_AttitudeControl.cpp in the
+ * Ardupilot codebase.
+ */
 void RatePIDCtrl::Reset()
 {
-	SetErrorSum(0.0);
+	// Set all accumulated variables to 0
+	PIDCtrlData[Axis_Yaw].Errsum = 0.0;
+	PIDCtrlData[Axis_Pitch].Errsum = 0.0;
+	PIDCtrlData[Axis_Roll].Errsum = 0.0;
 }
 
 void RatePIDCtrl::SetSpeed(int speed)
@@ -27,76 +34,61 @@ void RatePIDCtrl::SetSpeed(int speed)
 	QuadSpeed = speed;
 }
 
-void RatePIDCtrl::SetTunings(double kp, double ki, double kd)
+void RatePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
 {
-   Kp = kp;
-   Ki = ki/1000;
-   Kd = kd*1000;
+	PIDCtrlData[eAxis].Kp = kp;
+	PIDCtrlData[eAxis].Ki = ki/1000;
+	PIDCtrlData[eAxis].Kd = kd*1000;
+
 }
 
-void RatePIDCtrl::SetErrorSum(double val)
+double RatePIDCtrl::GetAttitude(Axis eAxis)
 {
-	Errsum = val;
+	return PIDCtrlData[eAxis].AttitudeBF;
 }
 
-void RatePIDCtrl::SetLastError(double val)
+void RatePIDCtrl::SetHoverAttitude(double attitude, Axis eAxis)
 {
-	LastErr = val;
+	PIDCtrlData[eAxis].HoverAttitudeBF = attitude;
 }
 
-double RatePIDCtrl::GetErrorSum()
+void RatePIDCtrl::OnControlInput(double userInput, Axis eAxis)
 {
-	return Errsum;
+	PIDCtrlData[eAxis].TargetAttitudeBF = PIDCtrlData[eAxis].HoverAttitudeBF + userInput;
 }
 
-double RatePIDCtrl::GetSetPoint()
+void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 {
-	return Setpoint;
-}
-
-void RatePIDCtrl::SetSetPoint(double _setPoint)
-{
-	Setpoint = _setPoint;
-}
-
-void RatePIDCtrl::SetNewSetpoint(double _setPoint)
-{
-	TargetSetpoint = _setPoint;
-	StepSize = (TargetSetpoint - Setpoint)/100;
-}
-
-double RatePIDCtrl::Compute(double input, double unused)
-{
-	// Did Setpoint change?
-	if (fabs(TargetSetpoint - Setpoint) > 2 * fabs(StepSize))
-	{
-		Setpoint += StepSize;
-	}
 	/*How long since we last calculated*/
 	unsigned long now = millis();
-	double timeChange = (double) (now - lastTime);
+	double timeChange = (double) (now - LastTime);
 
-	/*Compute all the working error variables*/
-	double error = (Setpoint - input);
-	// Start accumulating I error only when the Quad is approach lift off speed. Otherwise there could be a large accumulated
-	// I error before motors start leading to erratic (and potentially dangerous behavior)
-	if (QuadSpeed > 500)
+	for (int i = 0; i < 3; i++)
 	{
-		Errsum += (error) * timeChange;
-		// Cap Errsum
-		Errsum = Errsum > 0? min(20000, Errsum):max(-20000, Errsum);
+		double stepSize = (PIDCtrlData[i].TargetAttitudeBF - PIDCtrlData[i].AttitudeBF)/100;
+		PIDCtrlData[i].AttitudeBF += stepSize;
+		/*Compute all the working error variables*/
+		double error = (PIDCtrlData[i].AttitudeBF - angles[i]);
+		// Start accumulating I error only when the Quad is approach lift off speed. Otherwise there could be a large accumulated
+		// I error before motors start leading to erratic (and potentially dangerous behavior)
+		if (QuadSpeed > 500)
+		{
+			PIDCtrlData[i].Errsum += (error) * timeChange;
+			// Cap Errsum
+			PIDCtrlData[i].Errsum = PIDCtrlData[i].Errsum > 0? min(20000, PIDCtrlData[i].Errsum):max(-20000, PIDCtrlData[i].Errsum);
+		}
+
+		double dErr = (error - PIDCtrlData[i].LastErr) / timeChange;
+		/*Compute PID Output*/
+		double currentKp = max(0, PIDCtrlData[i].Kp * (1));
+		PIDCtrlData[i].Output = currentKp * error + PIDCtrlData[i].Ki * PIDCtrlData[i].Errsum + PIDCtrlData[i].Kd * dErr;
+
+		/*Remember some variables for next time*/
+		PIDCtrlData[i].LastErr = error;
+		LastTime = now;
+
+		output[i] = ApplySafeCheck(PIDCtrlData[i].Output);
 	}
-
-	double dErr = (error - LastErr) / timeChange;
-	/*Compute PID Output*/
-	double currentKp = max(0, Kp * (1));
-	Output = currentKp * error + Ki * Errsum + Kd * dErr;
-
-	/*Remember some variables for next time*/
-	LastErr = error;
-	lastTime = now;
-
-	return ApplySafeCheck(Output);
 }
 
 double RatePIDCtrl::ApplySafeCheck(double Output)
@@ -107,4 +99,10 @@ double RatePIDCtrl::ApplySafeCheck(double Output)
 	}
 	LastOutput = Output;
 	return Output;
+}
+
+
+void RatePIDCtrl::SetErrSum(double val, Axis eAxis)
+{
+	PIDCtrlData[eAxis].Errsum = val;
 }

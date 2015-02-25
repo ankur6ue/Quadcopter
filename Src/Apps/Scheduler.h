@@ -27,10 +27,13 @@ public:
 
 	void 	Execute();
 	virtual unsigned long	Run() { return 0; }
+	void 	Start();
+	void 	Stop();
 	unsigned long	LastRunTime; // records when the task was last run
 	unsigned long	TimeTaken; // records the time taken to run the task
 	unsigned long	IntervalTicks; // In microseconds
 	char			TaskName[50];
+	bool			bIsRunning;
 };
 
 class Scheduler
@@ -40,7 +43,6 @@ public:
 	void 	RegisterTask(Task* task);
 	void 	Tick();
 	void	RunTask(Task* task); // Runs a specific task
-
 	Task* 	Tasks[MAX_NUM_TASKS];
 	unsigned long 	LastRunTime; 	// records the last time scheduler was ticked
 	unsigned long 	TimeTaken; 	// records the time taken to execute the last tick

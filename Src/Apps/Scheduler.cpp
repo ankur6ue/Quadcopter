@@ -56,11 +56,24 @@ Task::Task (float frequency, const char* name): IntervalTicks((unsigned long)(10
 {
 	LastRunTime = 0;
 	TimeTaken	= 0;
+	bIsRunning	= true;
 	strcpy(TaskName, name);
+}
+
+void Task::Start()
+{
+	bIsRunning = true;
+}
+
+void Task::Stop()
+{
+	bIsRunning = false;
 }
 
 void Task::Execute()
 {
+	if (!bIsRunning) return;
+
 	unsigned long now = micros();
 	if (now - LastRunTime > IntervalTicks)
 	{

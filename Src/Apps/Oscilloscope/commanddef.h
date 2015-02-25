@@ -59,11 +59,11 @@ enum DirtyFlags: int
 	MOTORTOGGLE			= 16,
 	PIDPARAMS			= 32,
 	MOTORSTATE			= 64,
-	PITCHSETPOINT		= 128,
-	ROLLSETPOINT		= 256,
-	YAWSETPOINT			= 512,
-	DEF_PITCHSETPOINT	= 1024,
-	DEF_ROLLSETPOINT	= 2048,
+	PITCHDISPLACEMENT		= 128,
+	ROLLDISPLACEMENT		= 256,
+	YAWDISPLACEMENT			= 512,
+	PITCHHOVERATTITUDE	= 1024,
+	ROLLHOVERATTITUDE	= 2048,
 	SEND_BEACON			= 4096,
 	PIDTYPE				= 8192
 };
@@ -165,73 +165,73 @@ public:
 		ClearFlag(PIDTYPE);
 		return ePIDType;
 	}
-	void SetDefaultPitchSetpoint(double setPoint)
+	void SetPitchHoverAttitude(double setPoint)
 	{
 		lock.lockForWrite();
-		DefaultPitchSetPoint = setPoint;
-		SetFlag(DEF_PITCHSETPOINT);
+		PitchHoverAttitude = setPoint;
+		SetFlag(PITCHHOVERATTITUDE);
 		doUnlock();
 	}
 
-	void SetDefaultRollSetpoint(double setPoint)
+	void SetRollHoverAttitude(double setPoint)
 	{
 		lock.lockForWrite();
-		DefaultRollSetPoint = setPoint;
-		SetFlag(DEF_ROLLSETPOINT);
+		RollHoverAttitude = setPoint;
+		SetFlag(ROLLHOVERATTITUDE);
 		doUnlock();
 	}
 
-	void SetPitchSetpoint(double setPoint)
+	void SetPitchDisplacement(double setPoint)
 	{
 		lock.lockForWrite();
-		PitchSetPoint = setPoint;
-		SetFlag(PITCHSETPOINT);
+		PitchDisplacement = setPoint;
+		SetFlag(PITCHDISPLACEMENT);
 		doUnlock();
 	}
 
-	void SetRollSetpoint(double setPoint)
+	void SetRollDisplacement(double setPoint)
 	{
 		lock.lockForWrite();
 		RollSetPoint = setPoint;
-		SetFlag(ROLLSETPOINT);
+		SetFlag(ROLLDISPLACEMENT);
 		doUnlock();
 	}
 
-	void SetYawSetpoint(double setPoint)
+	void SetYawDisplacement(double setPoint)
 	{
 		lock.lockForWrite();
 		YawSetPoint = setPoint;
-		SetFlag(YAWSETPOINT);
+		SetFlag(YAWDISPLACEMENT);
 		doUnlock();
 	}
 
-	double GetDefaultPitchSetpoint()
+	double GetPitchHoverAttitude()
 	{
-		ClearFlag(DEF_PITCHSETPOINT);
-		return PitchSetPoint;
+		ClearFlag(PITCHHOVERATTITUDE);
+		return PitchDisplacement;
 	}
 
-	double GetDefaultRollSetpoint()
+	double GetRollHoverAttitude()
 	{
-		ClearFlag(DEF_ROLLSETPOINT);
+		ClearFlag(ROLLHOVERATTITUDE);
 		return RollSetPoint;
 	}
 
-	double GetPitchSetpoint()
+	double GetPitchDisplacement()
 	{
-		ClearFlag(PITCHSETPOINT);
-		return PitchSetPoint;
+		ClearFlag(PITCHDISPLACEMENT);
+		return PitchDisplacement;
 	}
 
-	double GetRollSetpoint()
+	double GetRollDisplacement()
 	{
-		ClearFlag(ROLLSETPOINT);
+		ClearFlag(ROLLDISPLACEMENT);
 		return RollSetPoint;
 	}
 
-	double GetYawSetpoint()
+	double GetYawDisplacement()
 	{
-		ClearFlag(YAWSETPOINT);
+		ClearFlag(YAWDISPLACEMENT);
 		return YawSetPoint;
 	}
 
@@ -463,10 +463,10 @@ private:
 	int		PIDParamsFlag;
 	int		MotorState;
 	int		Speed;
-	int		PitchSetPoint;
-	int		DefaultPitchSetPoint;
+	int		PitchDisplacement;
+	int		PitchHoverAttitude;
 	int		RollSetPoint;
-	int		DefaultRollSetPoint;
+	int		RollHoverAttitude;
 	int		YawSetPoint;
 	PIDType	ePIDType;
 
