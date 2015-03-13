@@ -90,9 +90,9 @@ void MainWindow::CreateCommonPIDControls()
 {
 	pCommonPIDCtrl	= new CommonPIDControls();
 
-	pCommonPIDCtrl->pPitchKp = new WheelBox( "Kp", 0.5, 6, 1, this );
+	pCommonPIDCtrl->pPitchKp = new WheelBox( "Kp", 0.5, 6, 0.5, this );
 	pCommonPIDCtrl->pPitchKi = new WheelBox( "Ki", 0, 10, 0.5, this );
-	pCommonPIDCtrl->pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
+	pCommonPIDCtrl->pPitchKd = new WheelBox( "Kd", 0, 1, 0.1, this );
 	pCommonPIDCtrl->pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
 	pCommonPIDCtrl->pYawKi = new WheelBox( "Yaw_Ki", 0, 2, 0.1, this );
 	pCommonPIDCtrl->pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.5, this );

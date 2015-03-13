@@ -33,6 +33,15 @@ void RatePIDCtrl::Reset()
 	PIDCtrlData[Axis_Pitch].Errsum = 0.0;
 	PIDCtrlData[Axis_Roll].Errsum = 0.0;
 
+	PIDCtrlData[Axis_Yaw].last_ang_vel = 0.0;
+	PIDCtrlData[Axis_Pitch].last_ang_vel = 0.0;
+	PIDCtrlData[Axis_Roll].last_ang_vel = 0.0;
+
+	PIDCtrlData[Axis_Yaw].LastDerivative = 0.0;
+	PIDCtrlData[Axis_Pitch].LastDerivative = 0.0;
+	PIDCtrlData[Axis_Roll].LastDerivative = 0.0;
+
+
 	// Set target attitude to hover attitude. Only do this for Pitch and Roll
 	for (int i = 0; i < 2; i++)
 	{
@@ -59,8 +68,8 @@ void RatePIDCtrl::SetA2RTunings(double A2R_kp, Axis eAxis)
 void RatePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
 {
 	PIDCtrlData[eAxis].Kp = kp/40;
-	PIDCtrlData[eAxis].Ki = ki/1000;
-	PIDCtrlData[eAxis].Kd = kd*1000;
+	PIDCtrlData[eAxis].Ki = ki/10000;
+	PIDCtrlData[eAxis].Kd = kd*10;
 }
 
 double RatePIDCtrl::GetAttitude(Axis eAxis)
@@ -83,7 +92,7 @@ void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 	/*How long since we last calculated*/
 	unsigned long now = millis();
 	double timeChange = (double) (now - LastTime);
-
+	LastTime = now;
 	for (int axis = 0; axis < 3; axis++)
 	{
 		// Step 1: Constrain target angle to valid range
@@ -98,22 +107,38 @@ void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 		float rate_error = curr_ang_vel - ang_vel_target;
 		// Step 4: Get p term
 		float p = PIDCtrlData[axis].Kp*rate_error;
+		// Store p (could be useful for logging)
+		PIDCtrlData[axis].P = p;
 		// Step 5: Get i term
+		float i = 0;
 		if (QuadSpeed > LiftOffSpeed)
 		{
-			PIDCtrlData[axis].Errsum += (rate_error) * timeChange;
-			// Cap Errsum
-			PIDCtrlData[axis].Errsum = PIDCtrlData[axis].Errsum > 0? min(20000, PIDCtrlData[axis].Errsum):max(-20000, PIDCtrlData[axis].Errsum);
+			// Update accumulated if:
+			// 1. i term lies within Windup range
+			// 2. i term will definitely decrease as the rate_error has a different sign
+			i = PIDCtrlData[axis].I;
+			if (((i >= RateWindUp) && (rate_error < 0)) ||
+				((i < -RateWindUp) && (rate_error > 0)) ||
+				((i < RateWindUp) && (i > -RateWindUp)))
+			{
+				PIDCtrlData[axis].Errsum += (rate_error) * timeChange;
+				i = PIDCtrlData[axis].Errsum*PIDCtrlData[axis].Ki;
+			}
 		}
-		float i = PIDCtrlData[axis].Errsum*PIDCtrlData[axis].Ki;
+		PIDCtrlData[axis].I = i;
 		// TODO: Check if motors are maxed out. In this case only add i term if it's going to reduce motor output
 
 		// Step 6: Get d term
-		double dErr = (rate_error - PIDCtrlData[axis].LastErr) / timeChange;
+		//double dErr = (rate_error - PIDCtrlData[axis].LastErr) / timeChange;
+		double dErr = (curr_ang_vel - PIDCtrlData[axis].last_ang_vel) / timeChange;
+		// Do some filtering on the derivative term to minimize noise
+		dErr = PIDCtrlData[axis].LastDerivative + (dErr - PIDCtrlData[axis].LastDerivative)*0.5;
+		PIDCtrlData[axis].LastDerivative = dErr;
 		float d = dErr*PIDCtrlData[axis].Kd;
-		// TODO: Apply complementary filter to derivative output and protect against sudden changes.
 
+		// Step 7: Add up PID components
 		PIDCtrlData[axis].Output = p+i+d;
+
 		if (PIDCtrlData[axis].Output > MaxPIDOutput)
 		{
 			cExceptionMgr.SetException(EXCESSIVE_PID_OUTPUT);
@@ -121,8 +146,7 @@ void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 		output[axis] = PIDCtrlData[axis].Output;
 		/*Remember some variables for next time*/
 		PIDCtrlData[axis].LastErr = rate_error;
-		LastTime = now;
-
+		PIDCtrlData[axis].last_ang_vel = curr_ang_vel;
 	}
 }
 

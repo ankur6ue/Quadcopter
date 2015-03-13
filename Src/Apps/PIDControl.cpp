@@ -30,6 +30,7 @@ PIDControllerImpl::PIDCtrlData::PIDCtrlData()
 	Errsum = 0; LastErr = 0;
 	Kp = 0; Ki = 0; Kd = 0;
 	TargetAttitudeEF = 0; TargetAttitudeBF = 0; StepSize = 0;
+	last_ang_vel = 0;
 }
 
 PIDControllerImpl::PIDControllerImpl()

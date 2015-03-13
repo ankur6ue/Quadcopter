@@ -53,7 +53,10 @@ public:
 		PIDCtrlData();
 		double 	Input, Output, AttitudeBF, AttitudeEF;
 		double 	Errsum, LastErr;
+		double	last_ang_vel;
+		double	LastDerivative;
 		double 	Kp, Ki, Kd;
+		double  P, I, D;
 		double 	A2R_Kp; // Coefficient to convert angle to angular velocity
 		double 	TargetAttitudeBF; // Body Frame Target Attitude
 		double 	TargetAttitudeEF; // Earth Frame Target Attitude
