@@ -39,6 +39,22 @@ extern volatile bool MPUInterrupt; // indicates whether MPU interrupt pin has go
 
 void DMPDataReady();
 
+struct IMUInitParams
+{
+	IMUInitParams(uint8_t gyroRange, uint8_t accelRange, uint8_t dlpfMode, uint8_t sampleRate)
+	{
+		GyroRange 		= gyroRange;
+		AccelRange 		= accelRange;
+		DLPFMode		= dlpfMode;
+		GyroSampleRate 	= sampleRate;
+	}
+
+	uint8_t GyroRange;
+	uint8_t AccelRange;
+	uint8_t	DLPFMode;
+	uint8_t	GyroSampleRate;
+};
+
 class IMU
 {
 
@@ -52,7 +68,7 @@ class IMU
   		int& aZOffset);
   bool processAngles(float angles[],float rates[] );
   bool GetMotion6(float angles[]);
-  bool IntegrateGyro();
+  bool IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega);
   bool GetYPR(float& yaw, float& pitch, float& roll);
   bool DoSanityCheck(float& yaw, float& pitch, float& roll);
 

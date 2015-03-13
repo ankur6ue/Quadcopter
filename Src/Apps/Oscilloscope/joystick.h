@@ -26,21 +26,31 @@ enum AxisMovedFlag
 	SPEEDDOWN	= 32
 };
 
-enum GamePadKeys
+enum GamePadKeys_PS4
 {
-	GPApLeft		= 0,
-	GPApRight		= 2,
-	GPApUp			= 3,
-	GPApDown		= 1,
-	GPApLBUTTON	= 4,
-	GPApRBUTTON	= 5
+	PS4_GamePadLeft		= 0,
+	PS4_GamePadRight	= 2,
+	PS4_GamePadUp		= 3,
+	PS4_GamePadDown		= 1,
+	PS4_GamePadLBUTTON	= 4,
+	PS4_GamePadRBUTTON	= 5
+};
+
+enum GamePadKeys_XB360
+{
+	XB360_GamePadLeft		= 2,
+	XB360_GamePadRight		= 1,
+	XB360_GamePadUp			= 3,
+	XB360_GamePadDown		= 0,
+	XB360_GamePadLBUTTON	= 4,
+	XB360_GamePadRBUTTON	= 5
 };
 
 enum QuadToGPad
 {
-	QuadStart		= GPApLBUTTON,
-	QuadSpeedUp		= GPApUp,
-	QuadSpeedDown	= GPApDown
+	QuadStart		= XB360_GamePadLBUTTON,
+	QuadSpeedUp		= XB360_GamePadUp,
+	QuadSpeedDown	= XB360_GamePadDown
 };
 
 class Joystick: public QObject

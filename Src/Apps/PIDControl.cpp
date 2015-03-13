@@ -18,6 +18,11 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "SerialDef.h"
 #include "AttitudePIDCtrl.h"
 #include "RatePIDCtrl.h"
+#include "BeaconListener.h"
+#include "BLMotorControl.h"
+
+extern BeaconListener 	cBeaconListener;
+extern MotorCtrl		cMotorCtrl;
 
 PIDControllerImpl::PIDCtrlData::PIDCtrlData()
 {
@@ -32,9 +37,31 @@ PIDControllerImpl::PIDControllerImpl()
 	QuadSpeed = 0; LastTime = 0;
 }
 
-PIDController::PIDController()
+PIDController::PIDController(int frequency, const char* name) : Task(frequency, name)
 {
 
+}
+
+unsigned long PIDController::Run()
+{
+	unsigned long before = micros();
+
+	bool bIsPIDSetup = QuadState.IsPIDControlReady();
+	if (bIsPIDSetup)
+	{
+		cBeaconListener.Start();
+		SetSpeed(QuadState.Speed);
+		float angles[3] = {QuadState.Yaw, QuadState.Pitch, QuadState.Roll};
+		float angVel[3] = {QuadState.YawOmega, QuadState.PitchOmega, QuadState.RollOmega};
+		double output[3];
+		Compute((double*)angles, (double*)&angVel, (double*)output);
+		QuadState.PID_Yaw 		= output[0];
+		QuadState.PID_Pitch 	= output[1];
+		QuadState.PID_Roll 		= output[2];
+		cMotorCtrl.Run();
+	}
+	unsigned long now = micros();
+	return now - before;
 }
 
 void PIDController::CreateControllers()
@@ -74,6 +101,12 @@ void PIDController::SetTunings(double kp, double ki, double kd, Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
 	pidCtrlImpl[pidIndex]->SetTunings(kp, ki, kd, _eAxis);
+}
+
+void PIDController::SetA2RTunings(double A2R_kp, Axis _eAxis)
+{
+	int pidIndex = QuadState.ePIDType;
+	pidCtrlImpl[pidIndex]->SetA2RTunings(A2R_kp, _eAxis);
 }
 
 void PIDController::Reset()

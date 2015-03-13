@@ -125,6 +125,10 @@ void QuadStateLogger::SendQuadState()
 	Serialize("QS", "Yaw_Ki", QuadState.Yaw_Ki);
 	Serialize("QS", "Yaw_Kd", QuadState.Yaw_Kd);
 
+	Serialize("QS", "A2R_PKp", QuadState.A2R_PKp);
+	Serialize("QS", "A2R_RKp", QuadState.A2R_RKp);
+	Serialize("QS", "A2R_YKp", QuadState.A2R_YKp);
+
 	Serialize("QS", "MotorToggle", QuadState.bMotorToggle);
 	Serialize("QS", "Speed", QuadState.Speed);
 	Serialize("QS", "PIDType", QuadState.ePIDType);

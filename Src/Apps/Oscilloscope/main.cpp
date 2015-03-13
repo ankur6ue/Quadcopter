@@ -38,6 +38,7 @@ int main( int argc, char **argv )
 
 	// signals emitted from the sampling thread, when commands from the arduino arrive
 	samplingThread.connect(&samplingThread, SIGNAL(signalEchoCommand(EchoCommand*)), &window, SLOT (echoCommand(EchoCommand*)));
+	samplingThread.connect(&samplingThread, SIGNAL(MotorsOff()), &window, SLOT (MotorsOff()));
 
     window.show();
 

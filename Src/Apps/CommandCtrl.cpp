@@ -23,7 +23,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "BeaconListener.h"
 #include "ErrorsDef.h"
 
-extern PIDController 	PIDCntrl;
+extern PIDController 	cPIDCntrl;
 extern MotorCtrl		cMotorCtrl;
 extern ExceptionMgr		cExceptionMgr;
 extern BeaconListener	cBeaconListener;
@@ -46,6 +46,10 @@ struct Command
 		return buffer;
 	}
 
+	void AttachSentinal()
+	{
+		Serial.print("z");
+	}
 	void SendAck()
 	{
 		char tmp1[50];
@@ -53,6 +57,7 @@ struct Command
 		dtostrf(Param, 3, 3, tmp2);
 		sprintf(tmp1, "%s %s %s", "Ack", Name, tmp2);
 		SERIAL.print(tmp1);
+		AttachSentinal();
 	}
 };
 
@@ -142,15 +147,8 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		{
 			cMotorCtrl.ResetMotors();
 			cExceptionMgr.ClearExceptionFlag();
-			bIsPIDSetup 	= false;
-			bIsKpSet 		= false;
-			bIsKiSet 		= false;
-			bIsKdSet 		= false;
-			bIsYawKpSet 	= false;
-			bIsYawKiSet 	= false;
-			bIsYawKdSet 	= false;
-			bIsPIDTypeSet 	= false;
-			PIDCntrl.Reset();
+			QuadState.Reset();
+			cPIDCntrl.Reset();
 			cBeaconListener.Reset();
 			// Stop the exception manager when motors are off
 			cBeaconListener.Stop();
@@ -161,57 +159,78 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 	if (!strcmp(cmd->Name, "PIDType"))
 	{
 		QuadState.ePIDType = (PIDType)(int)cmd->Param;
-		PIDCntrl.Reset();
-		bIsPIDTypeSet = true;
+		cPIDCntrl.Reset();
+		QuadState.bIsPIDTypeSet = true;
 	}
 
 	if (!strcmp(cmd->Name, "Kp"))
 	{
 		QuadState.Kp = cmd->Param;
-		bIsKpSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		QuadState.bIsKpSet = true;
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
 	}
 
 	if (!strcmp(cmd->Name, "Ki"))
 	{
 		QuadState.Ki = cmd->Param;
-		bIsKiSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
-		PIDCntrl.SetErrSum(0.0, Axis_Pitch);
-		PIDCntrl.SetErrSum(0.0, Axis_Roll);
+		QuadState.bIsKiSet = true;
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		cPIDCntrl.SetErrSum(0.0, Axis_Pitch);
+		cPIDCntrl.SetErrSum(0.0, Axis_Roll);
 	}
 
 	if (!strcmp(cmd->Name, "Kd"))
 	{
 		QuadState.Kd = cmd->Param;
-		bIsKdSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		QuadState.bIsKdSet = true;
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
 
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Kp"))
 	{
 		QuadState.Yaw_Kp = cmd->Param;
-		bIsYawKpSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Yaw);
+		QuadState.bIsYawKpSet = true;
+		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Ki"))
 	{
 		QuadState.Yaw_Ki = cmd->Param;
-		bIsYawKiSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Yaw);
-		PIDCntrl.SetErrSum(0.0, Axis_Yaw);
+		QuadState.bIsYawKiSet = true;
+		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
+		cPIDCntrl.SetErrSum(0.0, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Kd"))
 	{
 		QuadState.Yaw_Kd = cmd->Param;
-		bIsYawKdSet = true;
-		PIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Yaw);
+		QuadState.bIsYawKdSet = true;
+		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
+	}
+
+	if (!strcmp(cmd->Name, "A2R_PKp"))
+	{
+		QuadState.A2R_PKp = cmd->Param;
+		QuadState.bIsA2R_PKpSet = true;
+		cPIDCntrl.SetA2RTunings(QuadState.A2R_PKp, Axis_Pitch);
+	}
+
+	if (!strcmp(cmd->Name, "A2R_RKp"))
+	{
+		QuadState.A2R_RKp = cmd->Param;
+		QuadState.bIsA2R_RKpSet = true;
+		cPIDCntrl.SetA2RTunings(QuadState.A2R_RKp, Axis_Roll);
+	}
+
+	if (!strcmp(cmd->Name, "A2R_YKp"))
+	{
+		QuadState.A2R_YKp = cmd->Param;
+		QuadState.bIsA2R_YKpSet = true;
+		cPIDCntrl.SetA2RTunings(QuadState.A2R_YKp, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "MotorState"))
@@ -232,34 +251,34 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 	if (!strcmp(cmd->Name, "PitchHoverAtt"))
 	{
 		double attitude = cmd->Param;
-		PIDCntrl.SetHoverAttitude(attitude, Axis_Pitch);
+		cPIDCntrl.SetHoverAttitude(attitude, Axis_Pitch);
 	}
 
 	if (!strcmp(cmd->Name, "PitchDisp"))
 	{
 		double disp = cmd->Param;
-		PIDCntrl.OnControlInput(disp, Axis_Pitch);
+		cPIDCntrl.OnControlInput(disp, Axis_Pitch);
 	}
 
 	if (!strcmp(cmd->Name, "RollHoverAtt"))
 	{
 		double attitude = cmd->Param;
-		PIDCntrl.SetHoverAttitude(attitude, Axis_Roll);
+		cPIDCntrl.SetHoverAttitude(attitude, Axis_Roll);
 		double yawAttitude = QuadState.Yaw; // Set yaw to wherever the quad is oriented at.
-		PIDCntrl.SetHoverAttitude(yawAttitude, Axis_Yaw);
+		cPIDCntrl.SetHoverAttitude(yawAttitude, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "RollDisp"))
 	{
 		double disp = cmd->Param;
-		PIDCntrl.OnControlInput(disp, Axis_Roll);
+		cPIDCntrl.OnControlInput(disp, Axis_Roll);
 
 	}
 
 	if (!strcmp(cmd->Name, "YawDisp"))
 	{
 		double disp = cmd->Param;
-		PIDCntrl.OnControlInput(disp, Axis_Yaw);
+		cPIDCntrl.OnControlInput(disp, Axis_Yaw);
 	}
 };
 

@@ -76,16 +76,26 @@ void MainWindow::CreatePlotControls()
 	pTimerWheel->setValue( 20.0 );
 }
 
+void MainWindow::CreateAngle2RateControls()
+{
+	pA2RPitchWheel	= new WheelBox( "A2R_Pitch", 0, 70, 1, this );
+	pA2RPitchWheel->setValue(mA2RParams.A2R_Pitch);
+	pA2RRollWheel	= new WheelBox( "A2R_Roll", 0, 70, 1, this );
+	pA2RRollWheel->setValue(mA2RParams.A2R_Roll);
+	pA2RYawWheel	= new WheelBox( "A2R_Yaw", 0, 70, 1, this );
+	pA2RYawWheel->setValue(mA2RParams.A2R_Yaw);
+}
+
 void MainWindow::CreateCommonPIDControls()
 {
 	pCommonPIDCtrl	= new CommonPIDControls();
 
-	pCommonPIDCtrl->pPitchKp = new WheelBox( "Kp", 0, 30, 1, this );
-	pCommonPIDCtrl->pPitchKi = new WheelBox( "Ki", 0, 3, 0.05, this );
+	pCommonPIDCtrl->pPitchKp = new WheelBox( "Kp", 0.5, 6, 1, this );
+	pCommonPIDCtrl->pPitchKi = new WheelBox( "Ki", 0, 10, 0.5, this );
 	pCommonPIDCtrl->pPitchKd = new WheelBox( "Kd", 0, 30, 1, this );
 	pCommonPIDCtrl->pYawKp = new WheelBox( "Yaw_Kp", 0, 15, 0.5, this );
-	pCommonPIDCtrl->pYawKi = new WheelBox( "Yaw_Ki", 0, 1, 0.01, this );
-	pCommonPIDCtrl->pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.05, this );
+	pCommonPIDCtrl->pYawKi = new WheelBox( "Yaw_Ki", 0, 2, 0.1, this );
+	pCommonPIDCtrl->pYawKd = new WheelBox( "Yaw_Kd", 0, 4, 0.5, this );
 
 	SetPIDParams();
 }
@@ -114,6 +124,7 @@ void MainWindow::CreateRatePIDControls()
 
 void MainWindow::CreatePIDControls()
 {
+	CreateAngle2RateControls();
 	CreateCommonPIDControls();
 	CreateRatePIDControls();
 	CreateAttitudePIDControls();
@@ -147,6 +158,11 @@ void MainWindow::CreateQuadStatePanel()
 	pQuadYKi = new QLineEdit(this);	pQuadYKi->setAlignment(Qt::AlignLeft); pQuadYKi->setPalette(*palette); 
 	pQuadYKp = new QLineEdit(this);	pQuadYKp->setAlignment(Qt::AlignLeft); pQuadYKp->setPalette(*palette); 
 	pQuadYKd = new QLineEdit(this);	pQuadYKd->setAlignment(Qt::AlignLeft);	pQuadYKd->setPalette(*palette);
+	// Angle to Rate 
+	pQuadA2RPKp = new QLineEdit(this);	pQuadA2RPKp->setAlignment(Qt::AlignLeft);	pQuadA2RPKp->setPalette(*palette);
+	pQuadA2RRKp = new QLineEdit(this);	pQuadA2RRKp->setAlignment(Qt::AlignLeft);	pQuadA2RRKp->setPalette(*palette);
+	pQuadA2RYKp = new QLineEdit(this);	pQuadA2RYKp->setAlignment(Qt::AlignLeft);	pQuadA2RYKp->setPalette(*palette);
+
 }
 
 void MainWindow::CreateQuadControlPanel()
@@ -204,41 +220,54 @@ void MainWindow::ManageLayout()
 	QVBoxLayout* vLayout2a = new QVBoxLayout();
 	gpBox2a->setLayout(vLayout2a);
 
-	QGroupBox* gpBox2b = new QGroupBox("Quadcopter PID Control", this);
+	QGroupBox* gpBox2b = new QGroupBox("Angle to Rate Parameters", this);
 	QGridLayout* vLayout2b = new QGridLayout();
 	gpBox2b->setLayout(vLayout2b);
 
-	QGroupBox* gpBox2c = new QGroupBox("Quadcopter State", this);
+	QGroupBox* gpBox2c = new QGroupBox("Quadcopter PID Control", this);
 	QGridLayout* vLayout2c = new QGridLayout();
 	gpBox2c->setLayout(vLayout2c);
+
+	QGroupBox* gpBox2d = new QGroupBox("Quadcopter State", this);
+	QGridLayout* vLayout2d = new QGridLayout();
+	gpBox2d->setLayout(vLayout2d);
 
 	vLayout2->addWidget(gpBox2a);
 	vLayout2->addWidget(gpBox2b);
 	vLayout2->addWidget(gpBox2c);
+	vLayout2->addWidget(gpBox2d);
 
 	// Add Plot Control Widgets
 	vLayout2a->addWidget( pIntervalWheel, 0, Qt::AlignHCenter );
 	vLayout2a->addWidget( pTimerWheel, 0, Qt::AlignHCenter );
 	vLayout2a->addWidget( pAmplitudeKnob, 0, Qt::AlignHCenter );
 
-	// Quadcopter PID Control Parameters
+	// Angle to Roll controls
 	vLayout2b->setSpacing(0);
 	vLayout2b->setMargin(0);
+
+	vLayout2b->addWidget (pA2RPitchWheel, 0, 0, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pA2RRollWheel, 0, 1, 1, 1, Qt::AlignCenter);
+	vLayout2b->addWidget (pA2RYawWheel, 0, 2, 1, 1, Qt::AlignCenter);
+
+	// Quadcopter PID Control Parameters
+	vLayout2c->setSpacing(0);
+	vLayout2c->setMargin(0);
 	
 //-	AddRateCtrlPIDWidgets();
 //	AddAttitudeCtrlPIDWidgets();
 
-	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKp, 0, 0, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKi, 0, 1, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pCommonPIDCtrl->pPitchKd, 0, 2, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pCommonPIDCtrl->pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pCommonPIDCtrl->pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
-	vLayout2b->addWidget (pCommonPIDCtrl->pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pPitchKp, 0, 0, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pPitchKi, 0, 1, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pPitchKd, 0, 2, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget (pCommonPIDCtrl->pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
 	// UI elements representing Quadcopter state
 
-	vLayout2c->setSpacing(0);
-	vLayout2c->setMargin(0);
-	vLayout2c->setContentsMargins(0,0,0,50);
+	vLayout2d->setSpacing(0);
+	vLayout2d->setMargin(0);
+	vLayout2d->setContentsMargins(0,0,0,50);
 
 	// Create labels here as they are not class member variables
 	QLabel* pPIDTypeLabel = new QLabel("PIDType", this);
@@ -253,32 +282,39 @@ void MainWindow::ManageLayout()
 	QLabel* pQuadKpLabel = new QLabel("Kp", this);
 	QLabel* pQuadKdLabel = new QLabel("Kd", this);
 
-	vLayout2c->addWidget( pQuadSpeedLabel, 0, 0, 1, 2, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadSpeed, 0, 2, 1, 2, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadPowerLabel, 1, 0, 1, 2, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadPower, 1, 2, 1, 2, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadPLabel, 2, 1, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadRLabel, 2, 2, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadYLabel, 2, 3, 1, 1, Qt::AlignLeft);
+	QLabel* pQuadA2RLabel = new QLabel("A2R", this);
 
-	vLayout2c->addWidget( pQuadKpLabel, 3, 0, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadKiLabel, 4, 0, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadKdLabel, 5, 0, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadSpeedLabel, 0, 0, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadSpeed, 0, 2, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPowerLabel, 1, 0, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPower, 1, 2, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPLabel, 2, 1, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadRLabel, 2, 2, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadYLabel, 2, 3, 1, 1, Qt::AlignLeft);
 
-	vLayout2c->addWidget( pQuadPKp, 3, 1, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadRKp, 3, 2, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadYKp, 3, 3, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadKpLabel, 3, 0, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadKiLabel, 4, 0, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadKdLabel, 5, 0, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadA2RLabel, 6, 0, 1, 1, Qt::AlignLeft);
 
-	vLayout2c->addWidget( pQuadPKi, 4, 1, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadRKi, 4, 2, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadYKi, 4, 3, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPKp, 3, 1, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadRKp, 3, 2, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadYKp, 3, 3, 1, 1, Qt::AlignLeft);
 
-	vLayout2c->addWidget( pQuadPKd, 5, 1, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadRKd, 5, 2, 1, 1, Qt::AlignLeft);
-	vLayout2c->addWidget( pQuadYKd, 5, 3, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPKi, 4, 1, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadRKi, 4, 2, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadYKi, 4, 3, 1, 1, Qt::AlignLeft);
 
-	vLayout2c->addWidget( pPIDTypeLabel, 6, 0, 1, 2, Qt::AlignLeft);
-	vLayout2c->addWidget( pPIDType, 6, 2, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadPKd, 5, 1, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadRKd, 5, 2, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadYKd, 5, 3, 1, 1, Qt::AlignLeft);
+
+	vLayout2d->addWidget( pQuadA2RPKp, 6, 1, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadA2RRKp, 6, 2, 1, 1, Qt::AlignLeft);
+	vLayout2d->addWidget( pQuadA2RYKp, 6, 3, 1, 1, Qt::AlignLeft);
+
+	vLayout2d->addWidget( pPIDTypeLabel, 7, 0, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pPIDType, 7, 2, 1, 2, Qt::AlignLeft);
 
 	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch Displacements", this);
 	QGridLayout* vLayout3a = new QGridLayout();

@@ -48,6 +48,11 @@ void AttitudePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
 
 }
 
+void AttitudePIDCtrl::SetA2RTunings(double A2R_kp, Axis _eAxis)
+{
+	UNUSED2(A2R_kp, _eAxis)
+}
+
 double AttitudePIDCtrl::GetAttitude(Axis eAxis)
 {
 	return PIDCtrlData[eAxis].AttitudeBF;

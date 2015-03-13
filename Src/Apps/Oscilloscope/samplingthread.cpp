@@ -57,6 +57,7 @@ int SamplingThread::SetupSerialPort()
 {
 	int success = false;
 	Sp = new Serial("\\\\.\\COM21",115200);    // adjust as needed
+//	Sp = new Serial("\\\\.\\COM20",115200); 
 
 	if (Sp->IsConnected())
 	{
@@ -88,6 +89,12 @@ double SamplingThread::amplitude() const
 
 void SamplingThread::sample( double elapsed )
 {
+	if (UserCommands::Instance().GetOnInitFlag())
+	{
+		MotorsOff();
+		UserCommands::Instance().SetOnInitFlag(false);
+	}
+
 	if ( pfrequency > 0.0 )
 	{	
 		BytesRead = Sp->ReadData(cIncomingData, iDataLength);
@@ -110,6 +117,7 @@ void SamplingThread::sample( double elapsed )
 			char* next_token = NULL;
 			char* token;
 		//	printf("b%d\n", BytesRead);
+			printf(cIncomingData);
 			// Prepend new characters read with lastSnippet
 			int lastSnippetSize = strlen(cLastSnippet);
 			if (lastSnippetSize)
@@ -208,7 +216,7 @@ void SamplingThread::sample( double elapsed )
 			if (commandInstance->IsDirty(PITCHHOVERATTITUDE))
 			{
 				commandInstance->doLock();
-				double pitchHoverAtt = commandInstance->GetPitchHoverAttitude()*DEGTORAD;
+				double pitchHoverAtt = commandInstance->GetPitchHoverAttitude();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("PitchHoverAtt", pitchHoverAtt);
 				commandList.push_back(pcommandDef);
@@ -217,7 +225,7 @@ void SamplingThread::sample( double elapsed )
 			if (commandInstance->IsDirty(ROLLHOVERATTITUDE))
 			{
 				commandInstance->doLock();
-				double rollHoverAtt = commandInstance->GetRollHoverAttitude()*DEGTORAD;
+				double rollHoverAtt = commandInstance->GetRollHoverAttitude();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("RollHoverAtt", rollHoverAtt);
 				commandList.push_back(pcommandDef);
@@ -226,7 +234,7 @@ void SamplingThread::sample( double elapsed )
 			if (commandInstance->IsDirty(PITCHDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double disp = commandInstance->GetPitchDisplacement()*DEGTORAD;
+				double disp = commandInstance->GetPitchDisplacement();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("PitchDisp", disp);
 				commandList.push_back(pcommandDef);
@@ -235,7 +243,7 @@ void SamplingThread::sample( double elapsed )
 			if (commandInstance->IsDirty(ROLLDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double disp = commandInstance->GetRollDisplacement()*DEGTORAD;
+				double disp = commandInstance->GetRollDisplacement();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("RollDisp", disp);
 				commandList.push_back(pcommandDef);
@@ -244,7 +252,7 @@ void SamplingThread::sample( double elapsed )
 			if (commandInstance->IsDirty(YAWDISPLACEMENT))
 			{
 				commandInstance->doLock();
-				double disp = commandInstance->GetYawDisplacement()*DEGTORAD;
+				double disp = commandInstance->GetYawDisplacement();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("YawDisp", disp);
 				commandList.push_back(pcommandDef);
@@ -314,6 +322,30 @@ void SamplingThread::sample( double elapsed )
 					kd = commandInstance->GetYawKd();
 					commandInstance->doUnlock();
 					pcommandDef = new CommandDef("Yaw_Kd", kd);
+					commandList.push_back(pcommandDef);
+				}
+				if (commandInstance->IsPIDFlagDirty(A2RPitch))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetA2RPitch();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("A2R_PKp", kp);
+					commandList.push_back(pcommandDef);
+				}
+				if (commandInstance->IsPIDFlagDirty(A2RRoll))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetA2RRoll();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("A2R_RKp", kp);
+					commandList.push_back(pcommandDef);
+				}
+				if (commandInstance->IsPIDFlagDirty(A2RYaw))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetA2RYaw();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("A2R_YKp", kp);
 					commandList.push_back(pcommandDef);
 				}
 			}

@@ -105,7 +105,7 @@ void BLMotor::Run(int _speed)
 {
 	if (bIsRunning)
 	{
-		int speed = constrain_i(_speed, ESCSettings.Low, 1500);
+		int speed = constrain_i(_speed, ESCSettings.Low, MaxMotorInput);
 		Speed = speed;
 		Motor.write(speed);
 	}

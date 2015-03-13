@@ -19,9 +19,14 @@ otherwise accompanies this software in either electronic or hard copy form.
 class RatePIDCtrl: public PIDControllerImpl
 {
 public:
-	RatePIDCtrl(){};
-	~RatePIDCtrl(){};
+	RatePIDCtrl()
+	{
+		LastOutput = 0;
+	};
+	virtual ~RatePIDCtrl(){};
 	virtual void Compute(double* angles, double* angVels, double* output);
+
+	virtual void SetA2RTunings(double A2R_kp, Axis _eAxis);
 
 	virtual void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis);
 

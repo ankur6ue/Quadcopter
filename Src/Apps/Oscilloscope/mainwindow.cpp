@@ -42,8 +42,17 @@ void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& r
 		fscanf(fp, "Rate PitchPIDParams %f %f %f\n", &ratePIDParams.PitchPIDParams.fKp, &ratePIDParams.PitchPIDParams.fKi, &ratePIDParams.PitchPIDParams.fKd); 
 		fscanf(fp, "Rate RollPIDParams %f %f %f\n", &ratePIDParams.RollPIDParams.fKp, &ratePIDParams.RollPIDParams.fKi, &ratePIDParams.RollPIDParams.fKd); 
 
+		fscanf(fp, "Angle2Rate Params %f %f %f\n", &mA2RParams.A2R_Yaw, &mA2RParams.A2R_Pitch, &mA2RParams.A2R_Roll); 
+		
 		fscanf(fp, "RollHoverAttitude %d\n", &RollHoverAttitude); 
-		fscanf(fp, "PitchHoverAttitude %d\n", &PitchHoverAttitude); 
+		fscanf(fp, "PitchHoverAttitude %d\n", &PitchHoverAttitude);
+		char sPIDType[50];
+		fscanf(fp, "PIDType %s\n", sPIDType);
+		if (!strcmp(sPIDType, "Rate"))
+			ePIDType = RatePIDControl;
+		if (!strcmp(sPIDType, "Attitude"))
+			ePIDType = AttitudePIDControl;
+
 	}
 	else
 	{
@@ -55,6 +64,7 @@ void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& r
 		ratePIDParams.PitchPIDParams.fKp = 24; ratePIDParams.PitchPIDParams.fKi = 3; ratePIDParams.PitchPIDParams.fKd = 10;
 		ratePIDParams.RollPIDParams.fKp = 24; ratePIDParams.RollPIDParams.fKi = 3; ratePIDParams.RollPIDParams.fKd = 10;
 		PitchHoverAttitude = -4; RollHoverAttitude = -5;
+		ePIDType = RatePIDControl;
 	}
 }
 
@@ -80,6 +90,7 @@ void MainWindow::SetupCtrlInput()
 MainWindow::MainWindow( QWidget *parent ):
     QWidget( parent )
 {
+	UserCommands::Instance().SetOnInitFlag(true);
 	// Initialize the Joystick 
 	SetupCtrlInput();
 	ReadPIDParams(mAttPIDParams, mRatePIDParams);
@@ -90,8 +101,7 @@ MainWindow::MainWindow( QWidget *parent ):
 	CreateQuadStatePanel();
 	CreateQuadControlPanel();
 	ManageLayout();
-
-	ePIDType = AttitudePIDControl;
+	
     connect( pAmplitudeKnob, SIGNAL( valueChanged( double ) ),
         SIGNAL( amplitudeChanged( double ) ) );
 
@@ -104,6 +114,12 @@ MainWindow::MainWindow( QWidget *parent ):
 	connect( pQuadSpeed, SIGNAL (textChanged(const QString &)), SLOT(textChanged(const QString &)));
 
 	connect( pSpeedWheel, SIGNAL( valueChanged( double ) ), SLOT( speedChanged( double ) ) );
+
+	connect( pA2RPitchWheel, SIGNAL( valueChanged( double ) ), SLOT( A2RPitchChanged( double ) ) );
+
+	connect( pA2RRollWheel, SIGNAL( valueChanged( double ) ), SLOT( A2RRollChanged( double ) ) );
+
+	connect( pA2RYawWheel, SIGNAL( valueChanged( double ) ), SLOT( A2RYawChanged( double ) ) );
 
 	connect( pCommonPIDCtrl->pPitchKp, SIGNAL( valueChanged( double ) ), SLOT( PitchKpChanged( double ) ) );
 
@@ -229,6 +245,24 @@ void MainWindow::speedChanged(double speed)
 	UserCommands::Instance().SetSpeed(speed);
 }
 
+void MainWindow::A2RPitchChanged(double a2rPitch)
+{
+	UserCommands::Instance().SetA2RPitch(a2rPitch);
+	mA2RParams.A2R_Pitch = a2rPitch;
+}
+
+void MainWindow::A2RRollChanged(double a2rRoll)
+{
+	UserCommands::Instance().SetA2RRoll(a2rRoll);
+	mA2RParams.A2R_Roll = a2rRoll;
+}
+
+void MainWindow::A2RYawChanged(double a2rYaw)
+{
+	UserCommands::Instance().SetA2RYaw(a2rYaw);
+	mA2RParams.A2R_Yaw = a2rYaw;
+}
+
 // Handlers for user input
 void MainWindow::PitchHoverAngleChanged(double setPoint)
 {
@@ -297,39 +331,55 @@ void MainWindow::YawKdChanged(double kd)
 	UserCommands::Instance().SetYawKd(kd);
 }
 
+void MainWindow::MotorsOn()
+{
+	UserCommands::Instance().SetPitchKi(pPitchPIDParams->fKi);
+	UserCommands::Instance().SetPitchKp(pPitchPIDParams->fKp);
+	UserCommands::Instance().SetPitchKd(pPitchPIDParams->fKd);
+
+	UserCommands::Instance().SetYawKi(pYawPIDParams->fKi);
+	UserCommands::Instance().SetYawKp(pYawPIDParams->fKp);
+	UserCommands::Instance().SetYawKd(pYawPIDParams->fKd);
+	UserCommands::Instance().SetPIDType(ePIDType);
+
+	if (ePIDType == RatePIDControl)
+	{
+		UserCommands::Instance().SetA2RPitch(mA2RParams.A2R_Pitch);
+		UserCommands::Instance().SetA2RRoll(mA2RParams.A2R_Roll);
+		UserCommands::Instance().SetA2RYaw(mA2RParams.A2R_Yaw);
+	}
+	UserCommands::Instance().SetSendBeaconFlag();
+	ResetSetPoint();
+	pFL->setCheckState(Qt::Checked);
+	pBL->setCheckState(Qt::Checked);
+	pFR->setCheckState(Qt::Checked);
+	pBR->setCheckState(Qt::Checked);
+	UserCommands::Instance().ToggleMotors(true);
+}
+
+void MainWindow::MotorsOff()
+{
+	pSpeedWheel->setValue(0);
+	pFL->setCheckState(Qt::Unchecked);
+	pBL->setCheckState(Qt::Unchecked);
+	pFR->setCheckState(Qt::Unchecked);
+	pBR->setCheckState(Qt::Unchecked);
+	UserCommands::Instance().ClearSendBeaconFlag();
+	UserCommands::Instance().ToggleMotors(false);
+	//	pSpeedWheel->valueChanged(0);
+}
 void MainWindow::motorToggleClicked()
 {
 	bMotorToggle = !bMotorToggle;
 	pMotorToggle->setText(bMotorToggle? "On": "Off");
 	if (bMotorToggle == false) 
 	{
-		pSpeedWheel->setValue(0);
-		pFL->setCheckState(Qt::Unchecked);
-		pBL->setCheckState(Qt::Unchecked);
-		pFR->setCheckState(Qt::Unchecked);
-		pBR->setCheckState(Qt::Unchecked);
-		UserCommands::Instance().ClearSendBeaconFlag();
-	//	pSpeedWheel->valueChanged(0);
+		MotorsOff();
 	}
-
 	else
 	{
-		UserCommands::Instance().SetPitchKi(pPitchPIDParams->fKi);
-		UserCommands::Instance().SetPitchKp(pPitchPIDParams->fKp);
-		UserCommands::Instance().SetPitchKd(pPitchPIDParams->fKd);
-
-		UserCommands::Instance().SetYawKi(pYawPIDParams->fKi);
-		UserCommands::Instance().SetYawKp(pYawPIDParams->fKp);
-		UserCommands::Instance().SetYawKd(pYawPIDParams->fKd);
-		
-		UserCommands::Instance().SetSendBeaconFlag();
-		ResetSetPoint();
-		pFL->setCheckState(Qt::Checked);
-		pBL->setCheckState(Qt::Checked);
-		pFR->setCheckState(Qt::Checked);
-		pBR->setCheckState(Qt::Checked);
+		MotorsOn();
 	}
-	UserCommands::Instance().ToggleMotors(bMotorToggle);
 }
 
 void MainWindow::ResetSetPoint()
@@ -411,6 +461,24 @@ void MainWindow::echoCommand(EchoCommand* cmd)
 	{
 		sprintf_s(tmp, 50, "%f", val);
 		pQuadYKi->setText(tmp);
+	}
+
+	if (!strcmp("A2R_PKp", commandName))
+	{
+		sprintf_s(tmp, 50, "%f", val);
+		pQuadA2RPKp->setText(tmp);
+	}
+
+	if (!strcmp("A2R_RKp", commandName))
+	{
+		sprintf_s(tmp, 50, "%f", val);
+		pQuadA2RRKp->setText(tmp);
+	}
+
+	if (!strcmp("A2R_YKp", commandName))
+	{
+		sprintf_s(tmp, 50, "%f", val);
+		pQuadA2RYKp->setText(tmp);
 	}
 
 	if (!strcmp("PIDType", commandName))

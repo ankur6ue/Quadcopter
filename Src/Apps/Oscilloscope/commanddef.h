@@ -59,13 +59,14 @@ enum DirtyFlags: int
 	MOTORTOGGLE			= 16,
 	PIDPARAMS			= 32,
 	MOTORSTATE			= 64,
-	PITCHDISPLACEMENT		= 128,
-	ROLLDISPLACEMENT		= 256,
-	YAWDISPLACEMENT			= 512,
+	PITCHDISPLACEMENT	= 128,
+	ROLLDISPLACEMENT	= 256,
+	YAWDISPLACEMENT		= 512,
 	PITCHHOVERATTITUDE	= 1024,
 	ROLLHOVERATTITUDE	= 2048,
 	SEND_BEACON			= 4096,
-	PIDTYPE				= 8192
+	PIDTYPE				= 8192,
+
 };
 
 enum PIDFlags: int
@@ -81,6 +82,10 @@ enum PIDFlags: int
 	Yaw_Ki		= 64,
 	Yaw_Kp		= 128,
 	Yaw_Kd		= 256,
+
+	A2RPitch	= 512,
+	A2RYaw		= 1024,
+	A2RRoll		= 2048
 };
 
 enum MotorId: int
@@ -150,6 +155,54 @@ public:
 		Speed = _speed;
 		SetFlag(SPEED);
 		doUnlock();
+	}
+
+	void SetA2RPitch(double a2rPitch)
+	{
+		lock.lockForWrite();
+		dA2RPitch = a2rPitch;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(A2RPitch);
+		doUnlock();
+	}
+
+	void SetA2RRoll(double a2rRoll)
+	{
+		lock.lockForWrite();
+		dA2RRoll = a2rRoll;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(A2RRoll);
+		doUnlock();
+	}
+
+	void SetA2RYaw(double a2rYaw)
+	{
+		lock.lockForWrite();
+		dA2RYaw = a2rYaw;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(A2RYaw);
+		doUnlock();
+	}
+
+	double GetA2RPitch()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(A2RPitch);
+		return dA2RPitch;
+	}
+
+	double GetA2RRoll()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(A2RRoll);
+		return dA2RRoll;
+	}
+
+	double GetA2RYaw()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(A2RYaw);
+		return dA2RYaw;
 	}
 
 	void SetPIDType(PIDType pidType)
@@ -444,6 +497,16 @@ public:
 		return bMotorToggle;
 	}
 
+	void SetOnInitFlag(bool val)
+	{
+		bOnInit = val;
+	}
+	
+	bool GetOnInitFlag()
+	{
+		return bOnInit;
+	}
+
 	static UserCommands &Instance()
 	{
 		static UserCommands command;
@@ -484,13 +547,21 @@ private:
 	float	fKd;
 	} YawPIDParams;
 
+	double dA2RPitch;
+	double dA2RRoll;
+	double dA2RYaw;
+
 	struct RollPIDParamsDef
 	{
 	float	fKp;
 	float	fKi;
 	float	fKd;
 	} RollPIDParams;
-
+	// Flag used to indicate that the controller application has just started.
+	// set to true in the constructor of main window class. Used to reset the quadcopter state
+	// as it is possible that the quad is already running when the application is started
+	// for example if the application crashes while the quad is running and is restarted. 
+	bool	bOnInit;
 	bool	bMotorToggle;
 	QReadWriteLock lock;	
 };

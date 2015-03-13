@@ -13,29 +13,23 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
 
-#include "BeaconListener.h"
-#include "ErrorsDef.h"
-#include "SoftwareSerial.h"
-#include "SerialDef.h"
+#include "Orientation.h"
+#include "Quadcopter.h"
+#include "IMU.h"
 
+extern IMU Imu;
 
-extern ExceptionMgr cExceptionMgr;
-
-void 	BeaconListener::SetBeaconReceived()
-{
-	bBeaconReceived = true;
-}
-
-unsigned long BeaconListener::Run()
+unsigned long CalcOrientation::Run()
 {
 	unsigned long before = micros();
-	// Raise exception if we miss a beacon ( or if you want to be more permissive, two beacons in a row)
-	if ((bBeaconReceived != true) /* && (bLastBeaconReceived != true )*/)
+	float yaw, pitch, roll, yaw_omega, pitch_omega, roll_omega;
+	if (Imu.IntegrateGyro(yaw, pitch, roll, yaw_omega, pitch_omega, roll_omega))
 	{
-		cExceptionMgr.SetException(NO_BEACON_SIGNAL);
+		QuadState.Yaw = yaw; QuadState.Pitch = pitch; QuadState.Roll= roll;
+		QuadState.YawOmega 		= yaw_omega;
+		QuadState.PitchOmega 	= pitch_omega;
+		QuadState.RollOmega 	= roll_omega;
 	}
-	bBeaconReceived = false; // Will be toggled when the next beacon signal is received.
-	bLastBeaconReceived = bBeaconReceived;
 	unsigned long now = micros();
 	return now - before;
 }

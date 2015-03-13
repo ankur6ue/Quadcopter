@@ -23,6 +23,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "ErrorsDef.h"
 #include "BeaconListener.h"
 #include "SoftwareSerial.h"
+#include "Orientation.h"
 #include "SerialDef.h"
 
 MyLog 			cLog1;
@@ -47,28 +48,28 @@ ExceptionLogger		cExceptionLogger(1, NULL, "ExceptionLogger");
 CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(200, "MotorCtrl");
 BeaconListener		cBeaconListener(1, "BeaconListener");
-
-PIDController 		PIDCntrl;
-
+CalcOrientation		cCalcOrientation(200, "Calculate Orientation");
+PIDController 		cPIDCntrl(100, "PIDController");
 ExceptionMgr		cExceptionMgr;
 
 int 				StartupTime;
-bool				bIsPIDSetup = false;
-bool				bIsKpSet = false;
-bool				bIsKiSet = false;
-bool				bIsKdSet = false;
-bool				bIsYawKpSet = false;
-bool				bIsYawKiSet = false;
-bool				bIsYawKdSet = false;
-bool				bIsPIDTypeSet = false;
 int					ESCPoweredTime = 0;
 unsigned long		Now;
 unsigned long		Before;
 SoftwareSerial 		SSerial(3,4);
 QuadStateDef 		QuadState;
 int 				MPUInterruptCounter = 0;
-// class default I2C address is 0x68
-// specific I2C addresses may be passed as a parameter here
+
+// Thresholds
+// Thresholds
+// Controls how far the I term for the rate controller is allowed to go
+int					RateWindUp = 20000;
+// The PID output is not allowed to exceed this threshold
+int					MaxPIDOutput = 300;
+// To prevent damage to the motor, the motor input is capped
+int					MaxMotorInput = 1300;
+// Speed at which life off occurs. Depends on the weight of the quad, type of motors etc.
+int					LiftOffSpeed = 950;
 
 IMU Imu;
 
@@ -98,13 +99,15 @@ void setup()
     SERIAL.begin(115200);
 //    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
     SERIAL.print("In Setup");
-    PIDCntrl.CreateControllers();
+    cPIDCntrl.CreateControllers();
 
     cScheduler.RegisterTask(&cQuadStateLogger);
     cScheduler.RegisterTask(&cPIDStateLogger);
     cScheduler.RegisterTask(&cCommandCtrl);
     cScheduler.RegisterTask(&cBeaconListener);
     cScheduler.RegisterTask(&cExceptionLogger);
+    cScheduler.RegisterTask(&cCalcOrientation);
+    cScheduler.RegisterTask(&cPIDCntrl);
     /// Motors must be initialized first, otherwise the ESC will see inconsistent voltage on the PWM pin. They should
     /// see the ESCLow setting set during ESC calibration.
     cMotorCtrl.InitMotors();
@@ -114,48 +117,17 @@ void setup()
     cExceptionMgr.ClearExceptionFlag();
     ////////////////// MPU Initialization ////////////////
     Imu.Init();
-    Imu.DMPInit();
+ //   Imu.DMPInit();
 
-    // Set default PIDController to be the Attitude controller
-    QuadState.ePIDType = AttitudePIDControl;
+    // Set default PIDController to be the Rate controller
+    QuadState.ePIDType = RatePIDControl;
     StartupTime = millis();
 
 }
 
 void loop()
 {
-	float yaw, pitch, roll;
-	float angVel[6]; float angles[3]; float output[3];
-
 	cScheduler.Tick();
-
-	if (Imu.GetYPR(yaw, pitch, roll)) // Interrupts arrive in roughly 10000 microsec ~ 100HZ.
-	{
-		Now = millis();
-	//	SERIAL.print("\nNew data arrived in "); SERIAL.print(Now - Before);
-		Before = millis();
-		// Get gyroscope data. Double is the same as float (4 bytes) on Arduino
-		angles[0] = yaw; angles[1] = pitch; angles[2] = roll;
-		Imu.GetMotion6(angVel);
-		QuadState.Yaw = yaw; QuadState.Pitch = pitch; QuadState.Roll= roll;
-	//	QuadState.Kp = a1;
-		MPUInterruptCounter++;
-		bIsPIDSetup = bIsKpSet & bIsKiSet & bIsKdSet & bIsYawKpSet & bIsYawKiSet & bIsYawKdSet;
-		if (bIsPIDSetup)
-		{
-			//kp = map_i(a1, 0, 512, 0, 100);
-			cBeaconListener.Start();
-			PIDCntrl.SetSpeed(QuadState.Speed);
-			PIDCntrl.Compute((double*)angles, (double*)&angVel[3], (double*)output);
-			QuadState.PID_Yaw 		= output[0];
-			QuadState.PID_Pitch 	= output[1];
-			QuadState.PID_Roll 		= output[2];
-			cScheduler.RunTask(&cMotorCtrl);
-		}
-	}
-
-//	PrintData(angles, 6);
-
 }
 
 int main(void)

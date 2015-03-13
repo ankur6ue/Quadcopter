@@ -51,16 +51,19 @@ void MainWindow::CreateMenuItems()
 	prateCtrlAct->setObjectName("Rate");
 	prateCtrlAct->setCheckable(true);
 	pPIDTypeMenu->addAction(prateCtrlAct);
-	pPIDTypeMenu->setActiveAction(pattitudeCtrlAct);
-	pattitudeCtrlAct->setChecked(true);
+	
 	if (ePIDType == AttitudePIDControl) 
 	{
 		pPitchPIDParams = &mAttPIDParams.PitchPIDParams;
 		pYawPIDParams	= &mAttPIDParams.YawPIDParams;
+		pPIDTypeMenu->setActiveAction(pattitudeCtrlAct);
+		pattitudeCtrlAct->setChecked(true);
 	}
 	if (ePIDType == RatePIDControl) 
 	{
 		pPitchPIDParams = &mRatePIDParams.PitchPIDParams;
 		pYawPIDParams	= &mRatePIDParams.YawPIDParams;
+		pPIDTypeMenu->setActiveAction(prateCtrlAct);
+		prateCtrlAct->setChecked(true);
 	}
 }

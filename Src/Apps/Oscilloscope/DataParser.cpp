@@ -158,13 +158,13 @@ void DataParserImplYpr::Plot(double elapsed)
 {
 	if (bPrefixFound)
 	{
-		const QPointF y1( elapsed, RadToDegree*Data[0]);
+		const QPointF y1( elapsed, /*RadToDegree*/Data[0]);
 		SignalData::instance(yaw, MPU).append( y1 );
 
-		const QPointF p1( elapsed, RadToDegree*Data[1]);
+		const QPointF p1( elapsed, /*RadToDegree*/Data[1]);
 		SignalData::instance(pitch, MPU).append( p1);
 
-		const QPointF r1( elapsed, RadToDegree*Data[2]);
+		const QPointF r1( elapsed, /*RadToDegree*/Data[2]);
 		SignalData::instance(roll, MPU).append( r1 );
 	}
 }
@@ -173,13 +173,14 @@ void DataParserImplPID::Plot(double elapsed)
 {
 	if (bPrefixFound)
 	{
-		const QPointF y1( elapsed, 10*Data[0]);
+		int SCALE_FACTOR = 1;
+		const QPointF y1( elapsed, SCALE_FACTOR*Data[0]);
 		SignalData::instance(yaw, PID).append( y1 );
 
-		const QPointF p1( elapsed, 10*Data[1]);
+		const QPointF p1( elapsed, SCALE_FACTOR*Data[1]);
 		SignalData::instance(pitch, PID).append( p1);
 
-		const QPointF r1( elapsed, 10*Data[2]);
+		const QPointF r1( elapsed, SCALE_FACTOR*Data[2]);
 		SignalData::instance(roll, PID).append( r1 );
 	}
 }

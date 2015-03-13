@@ -17,6 +17,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #define PIDCONTROL_h
 
 #include "quadcopter.h"
+#include "Scheduler.h"
 
 #define NUMPIDCONTROLLERS 2 // Attitude Controller, Rate Controller
 
@@ -30,6 +31,8 @@ public:
 	virtual void Compute(double* angles, double* angVels, double* output) {};
 
 	virtual void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis) {};
+
+	virtual void SetA2RTunings(double A2R_kp, Axis _eAxis) {};
 
 	// Used specifically to set the accumulated error to zero when Ki is changed to prevent sudden jumps in PID output
 	virtual void SetErrSum(double val, Axis _eAxis) {};
@@ -51,6 +54,7 @@ public:
 		double 	Input, Output, AttitudeBF, AttitudeEF;
 		double 	Errsum, LastErr;
 		double 	Kp, Ki, Kd;
+		double 	A2R_Kp; // Coefficient to convert angle to angular velocity
 		double 	TargetAttitudeBF; // Body Frame Target Attitude
 		double 	TargetAttitudeEF; // Earth Frame Target Attitude
 		double 	HoverAttitudeBF;
@@ -63,16 +67,20 @@ public:
 
 };
 
-class PIDController
+class PIDController: public Task
 {
 public:
-	PIDController();
+	PIDController(int frequency, const char* name);
 
 	PIDControllerImpl* pidCtrlImpl[NUMPIDCONTROLLERS];
+
+	virtual unsigned long Run();
 
 	void RegisterPIDController(int index, PIDControllerImpl* pImpl);
 
 	void CreateControllers();
+
+	void SetA2RTunings(double A2R_kp, Axis _eAxis);
 
 	void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis);
 

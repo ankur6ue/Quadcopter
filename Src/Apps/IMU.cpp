@@ -94,28 +94,56 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
 
 void IMU::Init()
 {
-	// Initialize device
-	SERIAL.println("Initializing I2C devices...");
-	accelgyro->initialize();
+	/*
+	 * 1. GyroRange = 1000 degrees/seconds
+	 * 2. AccelRange = +-2g
+	 * 3. Digital Low Pass Filter Mode: 3
+	 * 4. GyroRate: Corresponds to a sample rate of 500Hz.
+	 */
 
-	//-885	-2964	1254	-4	-45	-34
+	IMUInitParams IMUInitParams(MPU6050_GYRO_FS_1000, MPU6050_ACCEL_FS_2, 3, 1);
+	// Must Reset the MPU in the beginning
+	accelgyro->reset();
+	// Give the reset some time to work out
+	delay(50);
+	// Sleep enabled must be set to false BEFORE configuration parameters are modified
+	accelgyro->setSleepEnabled(false);
+	delay(1);
+	// Not fully sure what this does, but Jeff's code uses it and it does no harm
+	accelgyro->setClockSource(MPU6050_CLOCK_PLL_XGYRO);
+	delay(1);
+	accelgyro->setFullScaleGyroRange(MPU6050_GYRO_FS_1000);
+	delay(1);
+	accelgyro->setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
+	delay(1);
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
-	uint8_t gyroSampleRate = accelgyro->getRate(); // according to the doc, accelerometer sample rate is always 1KHz.
+	delay(1);
+	accelgyro->setRate(1);
+	uint8_t dlpfMode = accelgyro->getDLPFMode();
+	SERIAL.println("DLPFMode = ");
+	SERIAL.println(dlpfMode);
+
+	uint8_t gyroSampleRate = accelgyro->getRate();
 	SERIAL.println("gyro sample rate = "); SERIAL.print(gyroSampleRate); SERIAL.print("\n");
-//	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
-//	SERIAL.print("Offsets are: (gyro, accel) ");
-//	PrintMotion6Data(gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
-//	accelgyro->setXAccelOffset(-885);
-//	accelgyro->setYAccelOffset(-2964);
-//	accelgyro->setZAccelOffset(1254);
-//	accelgyro->setXGyroOffset(gXOffset);
-//	accelgyro->setYGyroOffset(gYOffset);
-//	accelgyro->setZGyroOffset(gZOffset);
 
 	// Check connection
 	SERIAL.println("Testing device connections...");
 	SERIAL.println(accelgyro->testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-
+	// attachInterrupt(0, DMPDataReady, RISING);
+	// get default full scale value of gyro - may have changed from default
+	// function call returns values between 0 and 3
+	uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
+	SERIAL.print("FS_SEL = ");
+	SERIAL.println(READ_FS_SEL);
+	GYRO_FACTOR = 131.0 / (READ_FS_SEL + 1);
+	gXOffset = 0;
+	gYOffset = 0;
+	gZOffset = 0;
+	// get default full scale value of accelerometer - may not be default value.
+	// Accelerometer scale factor doesn't reall matter as it divides out
+	uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
+	SERIAL.print("AFS_SEL = ");
+	SERIAL.println(READ_AFS_SEL);
 	delay(100); // Wait for sensor to stabilize
 /*
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
@@ -161,44 +189,24 @@ void IMU::Init()
 	*/
 }
 
-bool IMU::IntegrateGyro()
+bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega)
 {
 	// Set the full scale range of the gyro
 	uint8_t FS_SEL = 0;
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ); //Set Starting angles
+	pitch_omega 	= gyroX;
+	roll_omega 		= gyroY;
+	yaw_omega		= gyroZ;
 
-	//mpu.setFullScaleGyroRange(FS_SEL);
-
-	// get default full scale value of gyro - may have changed from default
-	// function call returns values between 0 and 3
-	uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
-	SERIAL.print("FS_SEL = ");
-	SERIAL.println(READ_FS_SEL);
-	GYRO_FACTOR = 131.0 / (FS_SEL + 1);
-
-	// get default full scale value of accelerometer - may not be default value.
-	// Accelerometer scale factor doesn't reall matter as it divides out
-	uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
-	SERIAL.print("AFS_SEL = ");
-	SERIAL.println(READ_AFS_SEL);
 	//ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
 
 	// Remove offsets and scale gyro data
 	gyroX = (gyroX - gXOffset) / GYRO_FACTOR;
 	gyroY = (gyroY - gYOffset) / GYRO_FACTOR;
 	gyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
-	accX = accX; // - base_x_accel;
-	accY = accY; // - base_y_accel;
-	accZ = accZ; // - base_z_accel;
 
-	const double Q_angle = 0.001;
-
-	const double Q_gyroBias = 0.003;
-
-	const double R_angle = 0.03;
-
-	float accelAngleY = atan(-accX / accZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
-	float accelAngleX = atan(accY / accZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	float accelAngleY = atan(-(float)accX / (float)accZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	float accelAngleX = atan((float)accY / (float)accZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
 	float accelAngleZ = 0;
 	unsigned long now = millis();
 	// Compute the (filtered) gyro angles
@@ -221,6 +229,9 @@ bool IMU::IntegrateGyro()
 	fLastGyroAngleX = angleX;
 	fLastGyroAngleY = angleY;
 	fLastGyroAngleZ = angleZ;
+	pitch 			= fLastGyroAngleX;
+	roll 			= fLastGyroAngleY;
+	yaw 			= fLastGyroAngleZ;
 	Before = now;
 	return true;
 }
@@ -228,6 +239,7 @@ bool IMU::IntegrateGyro()
 bool IMU::DMPInit()
 {
 
+	DMPReady = false;
     // load and configure the DMP
     SERIAL.println(F("Initializing DMP..."));
     bool devStatus = accelgyro->dmpInitialize();
@@ -243,30 +255,31 @@ bool IMU::DMPInit()
         // turn on the DMP, now that it's ready
         SERIAL.println(F("Enabling DMP..."));
         accelgyro->setDMPEnabled(true);
-
         // enable Arduino interrupt detection
-        SERIAL.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+
         attachInterrupt(0, DMPDataReady, RISING);
         // get expected DMP packet size for later comparison
         PacketSize = accelgyro->dmpGetFIFOPacketSize();
-        SERIAL.println("Packet Size = "); SERIAL.print(PacketSize);
+        SERIAL.println("Packet Length = "); SERIAL.print(PacketSize); Serial.print("z");
+        delay(50);
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
         SERIAL.println(F("\nDMP ready! Waiting for first interrupt..."));
         DMPReady = true;
     }
+    return DMPReady;
 }
 
 bool IMU::GetMotion6(float angles[])
 {
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //400µs
-	angles[0] = accX; angles[1] = accY; angles[2] = accZ; angles[3] = gyroX; angles[4] = gyroY; angles[5] = gyroZ;
+	angles[0] = accX; angles[1] = accY; angles[2] = accZ; angles[3] = gyroZ; angles[4] = gyroX; angles[5] = gyroY;
 	return true;
 }
 
 bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 {
-	int fifoCount;
 
+	int fifoCount;
 	if (MPUInterrupt)
 	{
 		MPUInterrupt = false;
@@ -280,7 +293,10 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 			// reset so we can continue cleanly
 			accelgyro->resetFIFO();
 			SERIAL.println(F("FIFO overflow!"));
-
+			// In case of FIFO overflow, just send the previously recorded yaw/pitch/roll
+			yaw = YPR[0];
+			pitch = YPR[1];
+			roll = YPR[2];
 			// otherwise, check for DMP data ready interrupt (this should happen freQuently)
 		}
 		else if (mpuIntStatus & 0x02)
@@ -289,11 +305,15 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 			while (fifoCount < PacketSize)
 				fifoCount = accelgyro->getFIFOCount();
 
+			accelgyro->getFIFOBytes(FIFOBuffer, PacketSize);
+			// Read all packets in the FIFO buffer
+			/*
+		while (fifoCount >= PacketSize)
+		{
 			// read a packet from FIFO
 			accelgyro->getFIFOBytes(FIFOBuffer, PacketSize);
-			// track FIFO count here in case there is > 1 packet available
-			// (this lets us immediately read more without waiting for an interrupt)
-			fifoCount -= PacketSize;
+			fifoCount = fifoCount - PacketSize;
+		}*/
 			accelgyro->dmpGetQuaternion(&Q, FIFOBuffer);
 			accelgyro->dmpGetGravity(&Gravity, &Q);
 			accelgyro->dmpGetYawPitchRoll(YPR, &Q, &Gravity);
@@ -301,7 +321,7 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 			pitch = YPR[1];
 			roll = YPR[2];
 			// TODO: perhaps return false if DoSanityCheck fails
-		//	DoSanityCheck(yaw, pitch, roll);
+			//	DoSanityCheck(yaw, pitch, roll);
 			return true;
 		}
 	}

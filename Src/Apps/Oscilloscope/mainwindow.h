@@ -88,6 +88,14 @@ class MainWindow : public QWidget
 public:
     MainWindow( QWidget * = NULL );
 	~MainWindow();
+	
+	typedef struct Angle2RateParams
+	{
+		float A2R_Yaw; // A2R: Angle to Rate
+		float A2R_Pitch;
+		float A2R_Roll; 
+	};
+
 	typedef struct PIDParamsDef
 	{
 		float fKp;
@@ -120,6 +128,7 @@ public:
 	// Create different UI windows and manage layouts
 	void CreatePlots();
 	void CreatePlotControls();
+	void CreateAngle2RateControls();
 	void CreatePIDControls();
 	void CreateAttitudePIDControls();
 	void CreateRatePIDControls();
@@ -128,6 +137,7 @@ public:
 	void CreateQuadStatePanel();
 	void CreateQuadControlPanel();
 	void ManageLayout();
+	void MotorsOn();
 
 Q_SIGNALS:
     void amplitudeChanged( double );
@@ -144,6 +154,9 @@ public Q_SLOTS:
 	void PitchCtrlChanged(double);
 	void RollCtrlChanged(double);
 	void YawCtrlChanged(double);
+	void A2RPitchChanged(double);
+	void A2RRollChanged(double);
+	void A2RYawChanged(double);
 	void PitchKpChanged(double);
 	void PitchKiChanged(double);
 	void PitchKdChanged(double);
@@ -160,6 +173,7 @@ public Q_SLOTS:
 	void AxisMoved(long, long, long, int);
 	void CreateMenuItems();
 	void PIDCtrlTypeChanged();
+	void MotorsOff();
 private:
 
 	// Widget pointers. 
@@ -172,6 +186,9 @@ private:
 	WheelBox			*pPitchCtrlWheel;
 	WheelBox			*pRollCtrlWheel;
 	WheelBox			*pYawCtrlWheel;
+	WheelBox			*pA2RYawWheel;
+	WheelBox			*pA2RPitchWheel;
+	WheelBox			*pA2RRollWheel;
 	AttitudePIDControls	*pAttPIDCtrl;
 	RatePIDControls		*pRatePIDCtrl;
 	CommonPIDControls	*pCommonPIDCtrl;
@@ -190,6 +207,9 @@ private:
 	QLineEdit			*pQuadYKi; // Quad Yaw PID coefficients
 	QLineEdit			*pQuadYKp;
 	QLineEdit			*pQuadYKd;
+	QLineEdit			*pQuadA2RPKp;  // Angle to Roll P coefficients. 
+	QLineEdit			*pQuadA2RRKp; 
+	QLineEdit			*pQuadA2RYKp; 
 
 	QCheckBox	*pFR, *pFL, *pBR, *pBL;
 
@@ -218,7 +238,6 @@ public:
 	RatePIDParams		mRatePIDParams;
 	// These pointers are reset when the PID type is changed
 	PIDParamsDef		*pPitchPIDParams, *pYawPIDParams;
+	Angle2RateParams	mA2RParams;
 	PIDType				ePIDType; // Rate or Attitude
-
-
 };

@@ -24,6 +24,7 @@ public:
 	
 Q_SIGNALS:
 	void signalEchoCommand(EchoCommand*);
+	void MotorsOff();
 
 public Q_SLOTS:
     void setAmplitude( double );
