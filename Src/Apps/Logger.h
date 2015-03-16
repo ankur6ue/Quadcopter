@@ -16,7 +16,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "arduino.h"
 #include "Scheduler.h"
 
-#define LOGBUFSIZE 100
+#define LOGBUFSIZE 200
 
 class MyLog
 {

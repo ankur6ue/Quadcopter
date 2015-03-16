@@ -125,25 +125,6 @@ bool DataParserImpl::Parse(char* incomingData, int packetLength, char* commandId
 	return bPrefixFound;
 }
 
-bool DataParserImplException::Parse(char* incomingData, int packetLength, char* commandId)
-{
-	bPrefixFound = false;
-	if (PrefixLength == -1) return false;
-
-	for (int i = 0; i < max(0, packetLength-PrefixLength); i++)
-	{
-		int read = 0;
-		char exceptionName[50];
-		if (!strncmp(incomingData + i, Prefix, PrefixLength))
-		{
-			read = sscanf(incomingData+i+PrefixLength, "\t%s\t", exceptionName);
-			EchoCommand* cmd = new EchoCommand(Prefix, exceptionName);
-			pSamplingThread->signalEchoCommand(cmd);
-			bPrefixFound = true;
-		}
-	}
-	return bPrefixFound;
-}
 
 bool DataParser::ParseData(char* incomingData, int packetLength)
 {

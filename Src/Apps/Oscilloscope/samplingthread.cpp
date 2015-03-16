@@ -44,6 +44,7 @@ SamplingThread::SamplingThread( QObject *parent ):
 	pDataParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
 	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
 	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
+	pDataParser->RegisterDataParser(new DataParserImplException(this));
 	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
 	//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
 	pDataParser->RegisterAckParser(new DataParserImplAck(this));

@@ -364,6 +364,7 @@ void MainWindow::MotorsOff()
 	pBL->setCheckState(Qt::Unchecked);
 	pFR->setCheckState(Qt::Unchecked);
 	pBR->setCheckState(Qt::Unchecked);
+	pExceptionType->setText("");
 	UserCommands::Instance().ClearSendBeaconFlag();
 	UserCommands::Instance().ToggleMotors(false);
 	//	pSpeedWheel->valueChanged(0);
@@ -412,10 +413,11 @@ void MainWindow::BLStateChanged( int state)
 void MainWindow::echoCommand(EchoCommand* cmd)
 {
 
-	char* commandName = cmd->Command;
-	float val = cmd->Val;
-
+	char* commandName	= cmd->Command;
+	float val			= cmd->Val;
+	char* commandArgs	= cmd->CommandArgs;
 	char tmp[50];
+
 	if (!strcmp("Speed", commandName))
 	{
 		sprintf_s(tmp, 50, "%f", val);
@@ -484,6 +486,13 @@ void MainWindow::echoCommand(EchoCommand* cmd)
 	if (!strcmp("PIDType", commandName))
 	{
 		pPIDType->setText(val == 0? "Attitude": "Rate");
+	}
+
+	if (!strcmp("Exception:", commandName))
+	{
+		pExceptionType->setText(commandArgs);
+		MessageBeep(0xFFFFFFFF);
+
 	}
 	delete cmd;
 }

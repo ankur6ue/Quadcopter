@@ -196,6 +196,7 @@ private:
 	WheelBox			*pSpeedWheel;
 	QPushButton			*pMotorToggle;
 	QLineEdit			*pPIDType;
+	QLineEdit			*pExceptionType;
 	QLineEdit			*pQuadSpeed;
 	QLineEdit			*pQuadPower;
 	QLineEdit			*pQuadPKi; // Quad Pitch PID coefficients

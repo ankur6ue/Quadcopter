@@ -63,18 +63,21 @@ class IMU
   IMU();
   void Init();
   bool DMPInit();
-  void CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
-  		int& gyOffset, int& gzOffset, int& aXOffset, int& aYOffset,
-  		int& aZOffset);
+  void CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
+			double& gYOffset, double& gZOffset, double& aXOffset, double& aYOffset,
+			double& aZOffset);
   bool processAngles(float angles[],float rates[] );
   bool GetMotion6(float angles[]);
-  bool IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega);
+  bool IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
+		  float& yaw_accel, float& pitch_accel, float& roll_accel);
   bool GetYPR(float& yaw, float& pitch, float& roll);
   bool DoSanityCheck(float& yaw, float& pitch, float& roll);
-
-  int 	gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
+  float GetGyroFactor() { return GYRO_FACTOR; };
+  float GetAccelFactor() { return ACCEL_FACTOR; };
+  double gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
   float GYRO_FACTOR;
+  float ACCEL_FACTOR;
   float RADIANS_TO_DEGREES;
 
   private:
@@ -85,6 +88,8 @@ class IMU
 	/* IMU Data */
 	int16_t 	accX, accY, accZ;
 	int16_t		gyroX, gyroY, gyroZ;
+	float 		faccX, faccY, faccZ;
+	float		fgyroX, fgyroY, fgyroZ;
 	uint8_t 	FIFOBuffer[64];
 	float		YPR[3];
 	VectorFloat	Gravity;

@@ -65,11 +65,11 @@ int 				MPUInterruptCounter = 0;
 // Controls how far the I term for the rate controller is allowed to go
 int					RateWindUp = 150;
 // The PID output is not allowed to exceed this threshold
-int					MaxPIDOutput = 300;
+int					MaxPIDOutput = 350;
 // To prevent damage to the motor, the motor input is capped
-int					MaxMotorInput = 1300;
+int					MaxMotorInput = 1450;
 // Speed at which life off occurs. Depends on the weight of the quad, type of motors etc.
-int					LiftOffSpeed = 800;
+int					LiftOffSpeed = 850;
 
 IMU Imu;
 

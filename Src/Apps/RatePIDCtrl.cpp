@@ -61,15 +61,14 @@ void RatePIDCtrl::SetSpeed(int speed)
 
 void RatePIDCtrl::SetA2RTunings(double A2R_kp, Axis eAxis)
 {
-	SERIAL.println("In set a2rtunings"); SERIAL.print("z");
 	PIDCtrlData[eAxis].A2R_Kp = A2R_kp;
 }
 
 void RatePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
 {
-	PIDCtrlData[eAxis].Kp = kp/40;
-	PIDCtrlData[eAxis].Ki = ki/10000;
-	PIDCtrlData[eAxis].Kd = kd*10;
+	PIDCtrlData[eAxis].Kp = kp;
+	PIDCtrlData[eAxis].Ki = ki/1000;
+	PIDCtrlData[eAxis].Kd = kd*1000;
 }
 
 double RatePIDCtrl::GetAttitude(Axis eAxis)
@@ -100,7 +99,7 @@ void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 		// Step 2: Calculate discrepancy from desired angle
 		float angle_error = PIDCtrlData[axis].TargetAttitudeBF - angles[axis];
 		// TODO: wrap around to 180 degrees
-		// Step 3: Convert to angle difference to angular velocity
+		// Step 3: Convert angle difference to angular velocity
 		float ang_vel_target = angle_error*PIDCtrlData[axis].A2R_Kp;
 		// TODO: constrain ang_vel_error
 		float curr_ang_vel = angVels[axis];

@@ -146,6 +146,14 @@ unsigned long PIDStateLogger::Run()
 	pLog->AddtoLog("PID", pidParams, 3);
 	SERIAL.print(pLog->LogBuf);
 	AttachSentinal();
+	float motionParams[6] = {QuadState.YawOmega, QuadState.PitchOmega, QuadState.RollOmega, QuadState.YawAccel,
+			QuadState.PitchAccel, QuadState.RollAccel };
+	pLog->Reset();
+	pLog->AddtoLog("mpr", motionParams, 6);
+	SERIAL.print(pLog->LogBuf);
+	AttachSentinal();
+	pLog->Reset();
+
 	// SERIAL.print("NumInterrupts = "); SERIAL.println(MPUInterruptCounter);
 	MPUInterruptCounter = 0;
 	pLog->Reset();
@@ -161,15 +169,15 @@ unsigned long ExceptionLogger::Run()
 		switch (cExceptionMgr.GetException())
 		{
 		case NO_BEACON_SIGNAL:
-			SERIAL.println("Exception: No Beacon Received");
+			SERIAL.println("Exception: NoBeaconReceived");
 			AttachSentinal();
 			break;
 		case EXCESSIVE_PID_OUTPUT:
-			SERIAL.println("Exception: Excessive PID Output");
+			SERIAL.println("Exception: ExcessivePIDOutput");
 			AttachSentinal();
 			break;
 		case BAD_MPU_DATA:
-			SERIAL.println("Exception: Bad MPU Data");
+			SERIAL.println("Exception: BadMPUData");
 			AttachSentinal();
 			break;
 		}

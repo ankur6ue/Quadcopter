@@ -52,9 +52,12 @@ struct QuadStateDef
 	float 	Yaw;
 	float 	Pitch;
 	float 	Roll;
-	float 	YawOmega; // Angular velocity along Yaw axis
+	float 	YawOmega; 	// Angular velocity along Yaw axis
 	float	PitchOmega;
 	float	RollOmega;
+	float	YawAccel;	// Acceleration along Yaw
+	float 	PitchAccel;
+	float 	RollAccel;
 	float 	Kp;
 	float 	Ki;
 	float 	Kd;

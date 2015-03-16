@@ -177,8 +177,8 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		QuadState.bIsKiSet = true;
 		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
 		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
-		cPIDCntrl.SetErrSum(0.0, Axis_Pitch);
-		cPIDCntrl.SetErrSum(0.0, Axis_Roll);
+	//	cPIDCntrl.SetErrSum(0.0, Axis_Pitch);
+	//	cPIDCntrl.SetErrSum(0.0, Axis_Roll);
 	}
 
 	if (!strcmp(cmd->Name, "Kd"))

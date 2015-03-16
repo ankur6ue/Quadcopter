@@ -78,11 +78,11 @@ void MainWindow::CreatePlotControls()
 
 void MainWindow::CreateAngle2RateControls()
 {
-	pA2RPitchWheel	= new WheelBox( "A2R_Pitch", 0, 70, 1, this );
+	pA2RPitchWheel	= new WheelBox( "A2R_Pitch", 0, 5, 0.2, this );
 	pA2RPitchWheel->setValue(mA2RParams.A2R_Pitch);
-	pA2RRollWheel	= new WheelBox( "A2R_Roll", 0, 70, 1, this );
+	pA2RRollWheel	= new WheelBox( "A2R_Roll", 0, 5, 0.2, this );
 	pA2RRollWheel->setValue(mA2RParams.A2R_Roll);
-	pA2RYawWheel	= new WheelBox( "A2R_Yaw", 0, 70, 1, this );
+	pA2RYawWheel	= new WheelBox( "A2R_Yaw", 0, 5, 0.2, this );
 	pA2RYawWheel->setValue(mA2RParams.A2R_Yaw);
 }
 
@@ -138,6 +138,10 @@ void MainWindow::CreateQuadStatePanel()
 	pPIDType = new QLineEdit(this);
 	pPIDType->setAlignment(Qt::AlignLeft);
 	pPIDType->setPalette(*palette);
+
+	pExceptionType = new QLineEdit(this);
+	pExceptionType->setAlignment(Qt::AlignLeft);
+	pExceptionType->setPalette(*palette);
 
 	pQuadSpeed = new QLineEdit(this);
 	pQuadSpeed->setAlignment(Qt::AlignLeft);
@@ -271,6 +275,7 @@ void MainWindow::ManageLayout()
 
 	// Create labels here as they are not class member variables
 	QLabel* pPIDTypeLabel = new QLabel("PIDType", this);
+	QLabel* pExceptionTypeLabel = new QLabel("ExceptionType", this);
 	QLabel* pQuadSpeedLabel = new QLabel("QuadSpeed", this);
 	QLabel* pQuadPowerLabel = new QLabel("QuadPower", this);
 
@@ -315,6 +320,9 @@ void MainWindow::ManageLayout()
 
 	vLayout2d->addWidget( pPIDTypeLabel, 7, 0, 1, 2, Qt::AlignLeft);
 	vLayout2d->addWidget( pPIDType, 7, 2, 1, 2, Qt::AlignLeft);
+
+	vLayout2d->addWidget( pExceptionTypeLabel, 8, 0, 1, 2, Qt::AlignLeft);
+	vLayout2d->addWidget( pExceptionType, 8, 2, 1, 2, Qt::AlignLeft);
 
 	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch Displacements", this);
 	QGridLayout* vLayout3a = new QGridLayout();

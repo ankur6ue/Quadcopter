@@ -20,7 +20,7 @@ class SamplingThread;
 class DataParserImpl
 {
 public:
-	DataParserImpl(SamplingThread* samplingThread, const char* _prefix, int dataLength);
+	DataParserImpl(SamplingThread* samplingThread, const char* _prefix, int dataLength = 0);
 	virtual void Plot(double elapsed)
 	{
 	}
@@ -100,14 +100,14 @@ public:
 class DataParserImplCommands: public DataParserImpl
 {
 public:
-	DataParserImplCommands(SamplingThread* psamplingThread): DataParserImpl(psamplingThread, "QS", 0){};
+	DataParserImplCommands(SamplingThread* psamplingThread): DataParserImpl(psamplingThread, "QS"){};
 	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
 };
 
 class DataParserImplBeacon: public DataParserImpl
 {
 public:
-	DataParserImplBeacon(SamplingThread* psamplingThread): DataParserImpl(psamplingThread, "Beacon", 0){};
+	DataParserImplBeacon(SamplingThread* psamplingThread): DataParserImpl(psamplingThread, "Beacon"){};
 	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
 };
 
@@ -122,4 +122,12 @@ public:
 	{
 		return Data[0];
 	}
+};
+
+class DataParserImplException: public DataParserImpl
+{
+public:
+	DataParserImplException(SamplingThread* psamplingThread): DataParserImpl(psamplingThread, "Exception:"){};
+
+	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
 };

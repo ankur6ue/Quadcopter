@@ -42,11 +42,11 @@ void PrintMotion6Data(int ax, int ay, int az, int gx, int gy, int gz)
 	SERIAL.print("\n");
 }
 
-void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
-		int& gYOffset, int& gZOffset, int& aXOffset, int& aYOffset,
-		int& aZOffset)
+void IMU::CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
+		double& gYOffset, double& gZOffset, double& aXOffset, double& aYOffset,
+		double& aZOffset)
 {
-	int numReadings = 0;
+	// longs are 32bit integers on Arduino mega, so good for storing sums
 	long base_x_gyro = 0;
 	long base_y_gyro = 0;
 	long base_z_gyro = 0;
@@ -60,15 +60,22 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
 	// Discard the first few reading
 	unsigned long before = millis();
 	unsigned long now;
+	// If gyroSamplingRate = 1, that means we are sampling the sensors every 500hz, which is 2ms
+	// between every two samples. So to be safe, we sample every 3 ms to collect new samples every time
+	// lets discard the first 200 samples
+	int timeInterval = 1+gyroSamplingRate+1; //second plus one is provide some margin
+	int numSamples = 0;
 	do
 	{
 		accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-		now = millis();
+		delay(timeInterval);
+		numSamples++;
 	}
-	while(now - before < 1000/(gyroSamplingRate+1)); // ignore 1000 frames of data
+	while(numSamples < 200); // ignore 200 frames of data
 
 	before = millis();
-
+	// Now collect data for offset calculation
+	numSamples = 0;
 	do
 	{
 		accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -79,17 +86,18 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
 		base_x_accel += ax;
 		base_y_accel += ay;
 		base_z_accel += az;
-		numReadings++;
-		now = millis();
+		numSamples++;
+		delay(timeInterval);
 	}
-	while(now - before < 1000/(gyroSamplingRate+1)); // collect average over 1000 frames of data
-	base_x_gyro /= numReadings; 	gXOffset = base_x_gyro;
-	base_y_gyro /= numReadings;		gYOffset = base_y_gyro;
-	base_z_gyro /= numReadings;		gZOffset = base_z_gyro;
-	base_x_accel /= numReadings;	aXOffset = base_x_accel;
-	base_y_accel /= numReadings;	aYOffset = base_y_accel;
-	base_z_accel /= numReadings;	aZOffset = base_z_accel;
+	while(numSamples < 400); // collect average over 400 frames of data
 
+
+	gXOffset = base_x_gyro/numSamples;
+	gYOffset = base_y_gyro/numSamples;
+	gZOffset = base_z_gyro/numSamples;
+	aXOffset = base_x_accel/numSamples;
+	aYOffset = base_y_accel/numSamples;
+	aZOffset = base_z_accel/numSamples;
 }
 
 void IMU::Init()
@@ -112,13 +120,13 @@ void IMU::Init()
 	// Not fully sure what this does, but Jeff's code uses it and it does no harm
 	accelgyro->setClockSource(MPU6050_CLOCK_PLL_XGYRO);
 	delay(1);
-	accelgyro->setFullScaleGyroRange(MPU6050_GYRO_FS_1000);
+	accelgyro->setFullScaleGyroRange(MPU6050_GYRO_FS_1000); // Units: degrees/second
 	delay(1);
-	accelgyro->setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
+	accelgyro->setFullScaleAccelRange(MPU6050_ACCEL_FS_2); //+-2g
 	delay(1);
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
 	delay(1);
-	accelgyro->setRate(1);
+	accelgyro->setRate(1); // Corresponds to a sampling rate of 500 hz
 	uint8_t dlpfMode = accelgyro->getDLPFMode();
 	SERIAL.println("DLPFMode = ");
 	SERIAL.println(dlpfMode);
@@ -133,18 +141,28 @@ void IMU::Init()
 	// get default full scale value of gyro - may have changed from default
 	// function call returns values between 0 and 3
 	uint8_t READ_FS_SEL = accelgyro->getFullScaleGyroRange();
-	SERIAL.print("FS_SEL = ");
-	SERIAL.println(READ_FS_SEL);
 	GYRO_FACTOR = 131.0 / (READ_FS_SEL + 1);
-	gXOffset = 0;
-	gYOffset = 0;
-	gZOffset = 0;
+
 	// get default full scale value of accelerometer - may not be default value.
-	// Accelerometer scale factor doesn't reall matter as it divides out
+	// Accelerometer scale factor doesn't really matter as it divides out
 	uint8_t READ_AFS_SEL = accelgyro->getFullScaleAccelRange();
-	SERIAL.print("AFS_SEL = ");
-	SERIAL.println(READ_AFS_SEL);
-	delay(100); // Wait for sensor to stabilize
+	ACCEL_FACTOR = 16384.0/(READ_AFS_SEL + 1);
+	SERIAL.print("GYRO_FACTOR = ");
+	SERIAL.println(GYRO_FACTOR);
+	SERIAL.print("ACCEL_FACTOR = ");
+	SERIAL.println(ACCEL_FACTOR);
+	// Calculating the offsets is very important. Without doing so, gyro/accel measurements will
+	// experience significant drift.
+	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
+
+	SERIAL.println("gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset");
+	SERIAL.print(gXOffset), SERIAL.print(" ");
+	SERIAL.print(gYOffset), SERIAL.print(" ");
+	SERIAL.print(gZOffset), SERIAL.print(" ");
+	SERIAL.print(aXOffset), SERIAL.print(" ");
+	SERIAL.print(aYOffset), SERIAL.print(" ");
+	SERIAL.print(aZOffset), SERIAL.print(" ");
+
 /*
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
@@ -189,36 +207,47 @@ void IMU::Init()
 	*/
 }
 
-bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega)
+bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
+		float& yaw_accel, float& pitch_accel, float& roll_accel)
 {
-	// Set the full scale range of the gyro
-	uint8_t FS_SEL = 0;
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ); //Set Starting angles
-	pitch_omega 	= gyroX;
-	roll_omega 		= gyroY;
-	yaw_omega		= gyroZ;
-
-	//ACCEL_FACTOR = 16384.0/(AFS_SEL + 1);
 
 	// Remove offsets and scale gyro data
-	gyroX = (gyroX - gXOffset) / GYRO_FACTOR;
-	gyroY = (gyroY - gYOffset) / GYRO_FACTOR;
-	gyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
+	fgyroX = (gyroX - gXOffset) / GYRO_FACTOR;
+	fgyroY = (gyroY - gYOffset) / GYRO_FACTOR;
+	fgyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
 
-	float accelAngleY = atan(-(float)accX / (float)accZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
-	float accelAngleX = atan((float)accY / (float)accZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	// Remove offsets and scale accelerometer data
+	faccX = (accX - aXOffset) / ACCEL_FACTOR;
+	faccY = (accY - aYOffset) / ACCEL_FACTOR;
+	faccZ = (accZ) / ACCEL_FACTOR;
+
+	// Note that we must use scaled angular velocities and accelerations for PID loop
+	// After the scale adjustment is applied, the resulting values are in physical units (degrees/sec etc)
+	// and independent of gyro settings such as gyro/accel range etc. If unscaled values are used,
+	// the magnitude of the unscaled values will be different and PID coefficients set for a certain
+	// scale will likely not work.
+	pitch_omega 	= fgyroX;
+	roll_omega 		= fgyroY;
+	yaw_omega		= fgyroZ;
+	pitch_accel		= faccX;
+	roll_accel		= faccY;
+	yaw_accel		= faccZ;
+
+	float accelAngleY = atan(-faccX / faccZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
 	float accelAngleZ = 0;
 	unsigned long now = millis();
 	// Compute the (filtered) gyro angles
 	float dt = (now - Before) / 1000.0;
-	float gyroAngleX = gyroX * dt + fLastGyroAngleX;
-	float gyroAngleY = gyroY * dt + fLastGyroAngleY;
-	float gyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
+	float gyroAngleX = fgyroX * dt + fLastGyroAngleX;
+	float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
+	float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
 
 	// Compute the drifting gyro angles
-	float unfilteredGyroAngleX = gyroX * dt + fLastGyroAngleX;
-	float unfilteredGyroAngleY = gyroY * dt + fLastGyroAngleY;
-	float unfilteredGyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
+	// float unfilteredGyroAngleX = gyroX * dt + fLastGyroAngleX;
+	// float unfilteredGyroAngleY = gyroY * dt + fLastGyroAngleY;
+	// float unfilteredGyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
 
 	// Apply the complementary filter to figure out the change in angle - choice of alpha is
 	// estimated now.  Alpha depends on the sampling rate...
