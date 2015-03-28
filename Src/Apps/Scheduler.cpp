@@ -17,12 +17,13 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "arduino.h"
 #include "SoftwareSerial.h"
 #include "SerialDef.h"
+#include "Logger.h"
 
 Scheduler::Scheduler()
 {
-	LastRunTime = 0;
-	TimeTaken	= 0;
-	NumTasks	= 0;
+	LastRunTime 		= 0;
+	AggregateTickTime	= 0;
+	NumTasks			= 0;
 }
 
 void Scheduler::RegisterTask(Task* task)
@@ -34,14 +35,61 @@ void Scheduler::RegisterTask(Task* task)
 
 void Scheduler::Tick()
 {
-	LastRunTime  = micros();
+	LastRunTime  = millis();
 	for (int i = 0; i < NumTasks; i++)
 	{
 		Tasks[i]->Execute();
 	}
-	TimeTaken = micros() - LastRunTime;
+	AggregateTickTime += millis() - LastRunTime;
+	if (AggregateTickTime > PerfReportFreq)
+	{
+		char buffer[600];
+		memset(buffer, 0, 600);
+		if (GetPerformance(buffer, 600))
+		{
+			SERIAL.print(buffer);
+			PrintHelper::AttachSentinal();
+		}
+		AggregateTickTime = 0;
+	}
 	// Implement other important scheduler behaviour - tasks should have time budgets, scheduler should keep a track
 	// of if a task went over allocated budget etc.
+}
+
+bool Scheduler::GetPerformance(char* buffer, unsigned long bufSize)
+{
+	unsigned long aggregateTaskTime = 0; // accumulates the time taken to run different tasks
+	char tmp[100];
+	int strSize 				= 0;
+	int insertPos 				= 0;
+	unsigned long numTaskRuns 	= 0;
+	unsigned long taskTime		= 0;
+
+	for (int i = 0; i < NumTasks; i++)
+	{
+		numTaskRuns 	= Tasks[i]->GetRunCount();
+		taskTime		= Tasks[i]->GetAggregateTaskTime();
+		Tasks[i]->ResetAggregateTaskTime();
+		Tasks[i]->ResetRunCount();
+		int taskFrequency = (int)(numTaskRuns*1000/AggregateTickTime); // In Hz
+		memset(tmp, 0, 100);
+		sprintf(tmp, "%s %d\n", Tasks[i]->GetTaskName(), taskFrequency);
+		strSize = strlen(tmp);
+		// ensure we have space left in the buffer
+		if (bufSize - insertPos < strSize) return false;
+		memcpy(buffer+insertPos, tmp, strSize);
+		aggregateTaskTime += taskTime;
+		insertPos += strSize;
+	}
+	// Calculate portion of total ticks taken by running tasks. This is a measure of processor utilization
+	// by tasks
+	int procUtilization = (int)(aggregateTaskTime/AggregateTickTime)*100;
+	memset(tmp, 0, 100);
+	sprintf(tmp, "ProcUtil = %d\n", procUtilization);
+	strSize = strlen(tmp);
+	if (bufSize - insertPos < strSize) return false;
+	memcpy(buffer+insertPos, tmp, strSize);
+	return true;
 }
 
 void Scheduler::RunTask(Task* task)
@@ -52,11 +100,13 @@ void Scheduler::RunTask(Task* task)
 	}
 }
 
-Task::Task (float frequency, const char* name): IntervalTicks((unsigned long)(1000000.0/frequency))
+Task::Task (float frequency, const char* name): IntervalTicks((unsigned long)(1000/frequency))
 {
 	LastRunTime = 0;
-	TimeTaken	= 0;
+	TaskTime	= 0;
 	bIsRunning	= true;
+	RunCount	= 0;
+	AggregateTaskTime = 0;
 	strcpy(TaskName, name);
 }
 
@@ -74,11 +124,13 @@ void Task::Execute()
 {
 	if (!bIsRunning) return;
 
-	unsigned long now = micros();
+	unsigned long now = millis();
 	if (now - LastRunTime > IntervalTicks)
 	{
 		LastRunTime = now;
 	//	SERIAL.println(TaskName);
-		TimeTaken = this->Run();
+		TaskTime = this->Run();
+		RunCount++;
+		AggregateTaskTime += TaskTime;
 	}
 }

@@ -35,7 +35,7 @@ MotorCtrl::MotorCtrl(int frequency, const char* name): Task(frequency, name) {};
 
 unsigned long MotorCtrl::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	if (cExceptionMgr.IsCriticalException())
 	{
 	// Check for exceptions
@@ -54,13 +54,13 @@ unsigned long MotorCtrl::Run()
 	{
 		if (QuadState.bMotorToggle)
 		{
-			MotorFL.Run(QuadState.Speed - QuadState.PID_Roll  + QuadState.PID_Yaw);
-			MotorBL.Run(QuadState.Speed + QuadState.PID_Pitch - QuadState.PID_Yaw);
-			MotorFR.Run(QuadState.Speed - QuadState.PID_Pitch - QuadState.PID_Yaw);
-			MotorBR.Run(QuadState.Speed + QuadState.PID_Roll  + QuadState.PID_Yaw);
+			MotorFL.Run(QuadState.Speed - QuadState.PID_Pitch  + QuadState.PID_Yaw);
+			MotorBL.Run(QuadState.Speed + QuadState.PID_Roll - QuadState.PID_Yaw);
+			MotorFR.Run(QuadState.Speed - QuadState.PID_Roll - QuadState.PID_Yaw);
+			MotorBR.Run(QuadState.Speed + QuadState.PID_Pitch  + QuadState.PID_Yaw);
 		}
 	}
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return (now - before);
 }
 

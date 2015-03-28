@@ -20,11 +20,7 @@
 #ifndef Utils_h
 #define Utils_h
 
-#include "Arduino.h"
-
 #define rac22 0.7071
-
-
 
 float 	constrain_f(float x, float min, float max);
 int 	constrain_i(int x, int min, int max);
@@ -32,10 +28,15 @@ float 	map_f(float  x, float  in_min, float in_max, float out_min, float out_max
 float 	map_i(int  x, int  in_min, int   in_max, int  out_min, float  out_max);
 float 	map_f_s(int  x, int  in_min, int out_min, int ratio);
 float 	mean(int , float[]);
-void 	isort(int *, byte);
-int 	findMedian(int *, byte);
+void 	isort(int *, int);
+int 	findMedian(int *, int);
 float 	filterSmooth(float, float, float);
-int8_t sgn(int);
+// Taken from Ardupilot
+float 	safe_asin(float v);
+float 	safe_sqrt(float v);
+float 	fast_atan(float v);
+float 	fast_atan2(float y, float x);
+unsigned char sgn(int);
 
 
 #endif

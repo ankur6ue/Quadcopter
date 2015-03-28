@@ -46,6 +46,11 @@ bool MyLog::AddtoLog(const char* str)
 	}
 }
 
+int MyLog::GetLogLength()
+{
+	return LogLength;
+}
+
 void MyLog::Reset()
 {
 	LogLength = 0;
@@ -93,7 +98,7 @@ bool MyLog::AddtoLog(const char* prefix, int numbers[], int numElem)
 	return true;
 }
 
-void Logger::Serialize(const char* prefix, const char* name, float val)
+void PrintHelper::Serialize(const char* prefix, const char* name, float val)
 {
 	char tmp1[50];
 	char tmp2[10];
@@ -102,87 +107,95 @@ void Logger::Serialize(const char* prefix, const char* name, float val)
 	SERIAL.print(tmp1);
 }
 
-void Logger::AttachSentinal()
+void PrintHelper::Print(char* str)
+{
+	SERIAL.print(str);
+	SERIAL.flush();
+}
+
+void PrintHelper::AttachSentinal()
 {
 	SERIAL.print("z");
 }
 
 unsigned long QuadStateLogger::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	SendQuadState();
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 }
 
 void QuadStateLogger::SendQuadState()
 {
-	Serialize("QS", "PKp", QuadState.Kp);
-	Serialize("QS", "PKi", QuadState.Ki);
-	Serialize("QS", "PKd", QuadState.Kd);
+	PrintHelper::Serialize("QS", "PKp", QuadState.Kp);
+	PrintHelper::Serialize("QS", "PKi", QuadState.Ki);
+	PrintHelper::Serialize("QS", "PKd", QuadState.Kd);
 
-	Serialize("QS", "Yaw_Kp", QuadState.Yaw_Kp);
-	Serialize("QS", "Yaw_Ki", QuadState.Yaw_Ki);
-	Serialize("QS", "Yaw_Kd", QuadState.Yaw_Kd);
+	PrintHelper::Serialize("QS", "Yaw_Kp", QuadState.Yaw_Kp);
+	PrintHelper::Serialize("QS", "Yaw_Ki", QuadState.Yaw_Ki);
+	PrintHelper::Serialize("QS", "Yaw_Kd", QuadState.Yaw_Kd);
 
-	Serialize("QS", "A2R_PKp", QuadState.A2R_PKp);
-	Serialize("QS", "A2R_RKp", QuadState.A2R_RKp);
-	Serialize("QS", "A2R_YKp", QuadState.A2R_YKp);
+	PrintHelper::Serialize("QS", "A2R_PKp", QuadState.A2R_PKp);
+	PrintHelper::Serialize("QS", "A2R_RKp", QuadState.A2R_RKp);
+	PrintHelper::Serialize("QS", "A2R_YKp", QuadState.A2R_YKp);
 
-	Serialize("QS", "MotorToggle", QuadState.bMotorToggle);
-	Serialize("QS", "Speed", QuadState.Speed);
-	Serialize("QS", "PIDType", QuadState.ePIDType);
-	AttachSentinal();
+	PrintHelper::Serialize("QS", "MotorToggle", QuadState.bMotorToggle);
+	PrintHelper::Serialize("QS", "Speed", QuadState.Speed);
+	PrintHelper::Serialize("QS", "PIDType", QuadState.ePIDType);
+	PrintHelper::AttachSentinal();
 }
 
 unsigned long PIDStateLogger::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	float angles[3] =
 	{ QuadState.Yaw, QuadState.Pitch, QuadState.Roll };
-	pLog->AddtoLog("ypr", angles, 3);
+	Log.AddtoLog("ypr", angles, 3);
 	float pidParams[3] =
 	{ QuadState.PID_Yaw, QuadState.PID_Pitch, QuadState.PID_Roll };
-	pLog->AddtoLog("PID", pidParams, 3);
-	SERIAL.print(pLog->LogBuf);
-	AttachSentinal();
-	float motionParams[6] = {QuadState.YawOmega, QuadState.PitchOmega, QuadState.RollOmega, QuadState.YawAccel,
+	Log.AddtoLog("PID", pidParams, 3);
+	SERIAL.print(Log.LogBuf);
+	SERIAL.flush();
+	PrintHelper::AttachSentinal();
+	float motionParams[6] = {QuadState.Yaw2, QuadState.Pitch2, QuadState.Roll2, QuadState.YawAccel,
 			QuadState.PitchAccel, QuadState.RollAccel };
-	pLog->Reset();
-	pLog->AddtoLog("mpr", motionParams, 6);
-	SERIAL.print(pLog->LogBuf);
-	AttachSentinal();
-	pLog->Reset();
+	Log.Reset();
+	Log.AddtoLog("mpr", motionParams, 6);
+	SERIAL.print(Log.LogBuf);
+	SERIAL.flush();
+	PrintHelper::AttachSentinal();
+	Log.Reset();
 
 	// SERIAL.print("NumInterrupts = "); SERIAL.println(MPUInterruptCounter);
 	MPUInterruptCounter = 0;
-	pLog->Reset();
-	unsigned long now = micros();
+	Log.Reset();
+	unsigned long now = millis();
 	return now - before;
 }
 
 unsigned long ExceptionLogger::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	if (cExceptionMgr.IsException())
 	{
 		switch (cExceptionMgr.GetException())
 		{
 		case NO_BEACON_SIGNAL:
 			SERIAL.println("Exception: NoBeaconReceived");
-			AttachSentinal();
+			PrintHelper::AttachSentinal();
 			break;
 		case EXCESSIVE_PID_OUTPUT:
 			SERIAL.println("Exception: ExcessivePIDOutput");
-			AttachSentinal();
+			PrintHelper::AttachSentinal();
 			break;
 		case BAD_MPU_DATA:
 			SERIAL.println("Exception: BadMPUData");
-			AttachSentinal();
+			PrintHelper::AttachSentinal();
 			break;
 		}
 	}
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 }
 

@@ -14,12 +14,15 @@ otherwise accompanies this software in either electronic or hard copy form.
 **************************************************************************/
 
 #include "samplingthread.h"
+#include "Serial.h"
+#include "Serial_Overlapped.h"
 #include "signaldata.h"
 #include <qwt_math.h>
 #include <math.h>
 #include "DataParser.h"
 #include "commanddef.h"
 #include <qlist.h>
+#include "../MatrixOps.h"
 
 #if QT_VERSION < 0x040600
 #define qFastSin(x) ::sin(x)
@@ -36,7 +39,7 @@ enum ERRORS
 SamplingThread::SamplingThread( QObject *parent ):
 	QwtSamplingThread( parent ),
 	pfrequency( 5.0 ),
-	pamplitude( 20.0 ), iDataLength(1500), BytesRead(0)
+	pamplitude( 20.0 ), iDataLength(4000), BytesRead(0)
 {
 	SetupSerialPort();
 	cLastSnippet[0] = '\0';
@@ -44,12 +47,30 @@ SamplingThread::SamplingThread( QObject *parent ):
 	pDataParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
 	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
 	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
+	pDataParser->RegisterDataParser(new DataParserImplMpr(this, "mpr", 6));
 	pDataParser->RegisterDataParser(new DataParserImplException(this));
 	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
 	//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
 	pDataParser->RegisterAckParser(new DataParserImplAck(this));
-
+	/*
 	//	fp = fopen("C:\\Qt\\SensorData.txt", "w");
+	Matrix3D mat;
+	for (int i = 1; i < 20; i++)
+	{
+		float dox = 0.1; float doy = 0.1; float doz = 0.1;
+		VectorF r1(1, -doz, doy);
+		VectorF r2(doz, 1, -dox);
+		VectorF r3(-doy, dox, 1);
+		Matrix3D o(r1, r2, r3);
+		//o.Scale(M_PI/180);
+		mat = mat.Multiply(o);
+		mat.Renormalize();
+		float yaw, pitch, roll;
+		mat.ToEuler(yaw, pitch, roll);
+		printf("%f %f %f\n", yaw, pitch, roll);
+	}
+	int k = 0;
+	*/
 }
 
 
@@ -58,7 +79,8 @@ int SamplingThread::SetupSerialPort()
 {
 	int success = false;
 	Sp = new Serial("\\\\.\\COM21",115200);    // adjust as needed
-//	Sp = new Serial("\\\\.\\COM20",115200); 
+//	Sp = new Serial("\\\\.\\COM20",115200);
+//	Sp = new Serial("\\\\.\\COM23",115200);
 
 	if (Sp->IsConnected())
 	{
@@ -119,27 +141,28 @@ void SamplingThread::sample( double elapsed )
 			char* token;
 		//	printf("b%d\n", BytesRead);
 			printf(cIncomingData);
+			memcpy(cIncomingData2, cIncomingData, MAX_INCOMING_DATA);
 			// Prepend new characters read with lastSnippet
 			int lastSnippetSize = strlen(cLastSnippet);
 			if (lastSnippetSize)
 			{
-				char tmp[2000];
-				memcpy(tmp, cIncomingData, BytesRead);
-				memcpy(cIncomingData, cLastSnippet, lastSnippetSize);
-				memcpy(cIncomingData + lastSnippetSize, tmp, BytesRead);
+				char tmp[MAX_INCOMING_DATA];
+				memcpy(tmp, cIncomingData2, BytesRead);
+				memcpy(cIncomingData2, cLastSnippet, lastSnippetSize);
+				memcpy(cIncomingData2 + lastSnippetSize, tmp, BytesRead);
 				// We used this snippet, so put a terminating null in the beginning
-				memset(cLastSnippet, 0, 2000);
-				memset(tmp, 0, 2000);
+				memset(cLastSnippet, 0, MAX_INCOMING_DATA);
+				memset(tmp, 0, MAX_INCOMING_DATA);
 			}
 			// We check for the last character in the incoming data here and not after passing cIncomingData to
 			// strtok as strtok modifies the data passed to it.
 			char lastChar = '\0';
-			int len = strlen(cIncomingData);
+			int len = strlen(cIncomingData2);
 			if (len >= 1)
 			{
-				lastChar = cIncomingData[len-1];
+				lastChar = cIncomingData2[len-1];
 			}
-			token = strtok_s(cIncomingData, "z", &next_token);
+			token = strtok_s(cIncomingData2, "z", &next_token);
 			while(*next_token != '\0')
 			{
 				pDataParser->ParseData(token, strlen(token));
@@ -162,7 +185,8 @@ void SamplingThread::sample( double elapsed )
 				// start with the missing characters of this snippet. 
 				strcpy(cLastSnippet, token);
 			}
-			memset(cIncomingData, 0, 1500);
+			memset(cIncomingData, 0, MAX_INCOMING_DATA);
+			memset(cIncomingData2, 0, MAX_INCOMING_DATA);
 		}	
 
 		UserCommands* commandInstance = &(UserCommands::Instance());

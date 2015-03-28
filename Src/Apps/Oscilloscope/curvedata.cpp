@@ -16,32 +16,35 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "curvedata.h"
 #include "signaldata.h"
 
-SignalData& CurveData::GetSignalInstance() const
+SignalData* CurveData::GetSignalInstance() const
 {
 	return SignalData::instance(ePlotId, eCurveId);
 }
 
-const SignalData &CurveData::values() const
+SignalData* CurveData::values() const
 {
     return GetSignalInstance();
 }
 
-SignalData &CurveData::values()
+SignalData* CurveData::values()
 {
     return GetSignalInstance();
 }
 
 QPointF CurveData::sample( size_t i ) const
 {
-    return GetSignalInstance().value( i );
+	SignalData* signalData = GetSignalInstance();
+	if (signalData)
+		return signalData->value( i );
+	return QPointF();
 }
 
 size_t CurveData::size() const
 {
-    return GetSignalInstance().size();
+    return GetSignalInstance()->size();
 }
 
 QRectF CurveData::boundingRect() const
 {
-    return GetSignalInstance().boundingRect();
+    return GetSignalInstance()->boundingRect();
 }

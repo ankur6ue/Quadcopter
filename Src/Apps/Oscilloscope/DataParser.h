@@ -12,15 +12,25 @@ agreement provided at the time of installation or download, or which
 otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
-
+#include "DataLogger.h"
 #include "signaldata.h"
 #include "qmath.h"
+#include "qfile.h"
+
 class SamplingThread;
 
 class DataParserImpl
 {
 public:
 	DataParserImpl(SamplingThread* samplingThread, const char* _prefix, int dataLength = 0);
+	virtual ~DataParserImpl()
+	{
+		if (Data)
+			delete []Data;
+		if (pLogger)
+			delete pLogger;
+	}
+
 	virtual void Plot(double elapsed)
 	{
 	}
@@ -30,9 +40,12 @@ public:
 	}
 	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
 	
+	virtual bool WriteToLog(QDataStream& out);
+	// Responsible for (de)serializing parsed data
+	Logger*	pLogger;
 	char	Prefix[100];
 	int		PrefixLength;
-	float	Data[4];
+	float	*Data;
 	float	RadToDegree;
 	int		DataLength;
 	bool	bPrefixFound;
@@ -44,9 +57,9 @@ class DataParser
 public:
 	DataParser(){}
 
-	QList<DataParserImpl*> DataParsers;
-	QList<DataParserImpl*> AckParsers;
-
+	QList<DataParserImpl*>	DataParsers;
+	QList<DataParserImpl*>	AckParsers;
+	QFile					File;
 	void RegisterDataParser(DataParserImpl* dataParser)
 	{
 		DataParsers.push_back(dataParser);
@@ -70,6 +83,8 @@ public:
 	bool ParseData(char* incomingData, int packetLength);
 	bool ParseAck(char* incomingData, int packetLength, char* commandId);
 	void Plot(double elapsed);
+	bool WriteToLog();
+	bool ReadFromLog();
 };
 
 
@@ -77,7 +92,16 @@ public:
 class DataParserImplYpr: public DataParserImpl
 {
 public:
-	DataParserImplYpr(SamplingThread* psamplingThread, char* _prefix, int dataLength): DataParserImpl(psamplingThread, _prefix, dataLength){};
+	DataParserImplYpr(SamplingThread* psamplingThread, char* _prefix, int dataLength): 
+		DataParserImpl(psamplingThread, _prefix, dataLength){}
+
+	void Plot(double elapsed);
+};
+
+class DataParserImplMpr: public DataParserImpl
+{
+public:
+	DataParserImplMpr(SamplingThread* psamplingThread, char* _prefix, int dataLength): DataParserImpl(psamplingThread, _prefix, dataLength){};
 
 	void Plot(double elapsed);
 };

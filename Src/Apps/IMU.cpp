@@ -19,6 +19,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "SoftwareSerial.h"
 #include "SerialDef.h"
 #include "ErrorsDef.h"
+#include "MatrixOps.h"
 
 extern ExceptionMgr cExceptionMgr;
 extern volatile bool MPUInterrupt = false; // indicates whether MPU interrupt pin has gone high
@@ -32,7 +33,8 @@ IMU::IMU()
 {  
 	MPUInterrupt = false;
 	accelgyro = new MPU6050();
-	RADIANS_TO_DEGREES = 180/M_PI;
+	RADIANS_TO_DEGREES = 180.0/M_PI;
+	DEGREES_TO_RADIANS = 1.0/RADIANS_TO_DEGREES;
 }
 
 void PrintMotion6Data(int ax, int ay, int az, int gx, int gy, int gz)
@@ -163,6 +165,7 @@ void IMU::Init()
 	SERIAL.print(aYOffset), SERIAL.print(" ");
 	SERIAL.print(aZOffset), SERIAL.print(" ");
 
+	Reset();
 /*
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
 	accelgyro->setDLPFMode(3);  //Set Low Pass filter
@@ -208,7 +211,7 @@ void IMU::Init()
 }
 
 bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
-		float& yaw_accel, float& pitch_accel, float& roll_accel)
+		float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2)
 {
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ); //Set Starting angles
 
@@ -218,8 +221,8 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	fgyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
 
 	// Remove offsets and scale accelerometer data
-	faccX = (accX - aXOffset) / ACCEL_FACTOR;
-	faccY = (accY - aYOffset) / ACCEL_FACTOR;
+	faccX = (accX /*- aXOffset*/) / ACCEL_FACTOR;
+	faccY = (accY /*- aYOffset)*/) / ACCEL_FACTOR;
 	faccZ = (accZ) / ACCEL_FACTOR;
 
 	// Note that we must use scaled angular velocities and accelerations for PID loop
@@ -227,15 +230,18 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	// and independent of gyro settings such as gyro/accel range etc. If unscaled values are used,
 	// the magnitude of the unscaled values will be different and PID coefficients set for a certain
 	// scale will likely not work.
-	pitch_omega 	= fgyroX;
-	roll_omega 		= fgyroY;
+	pitch_omega 	= fgyroY; // Means angle of rotation about Y axis
+	roll_omega 		= fgyroX;
 	yaw_omega		= fgyroZ;
-	pitch_accel		= faccX;
+	pitch_accel		= faccX; // Means acceleration along x axis
 	roll_accel		= faccY;
 	yaw_accel		= faccZ;
 
-	float accelAngleY = atan(-faccX / faccZ) * RADIANS_TO_DEGREES; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
-	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+	// Angle of rotation about Y axis computed from the acceleration vector
+	float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RADIANS_TO_DEGREES;
+	// Angle of rotation about X Axis computer from the acceleration vector
+	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES;
+	// Acceleration doesn't give info about rotation around Z
 	float accelAngleZ = 0;
 	unsigned long now = millis();
 	// Compute the (filtered) gyro angles
@@ -244,25 +250,52 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
 	float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
 
-	// Compute the drifting gyro angles
-	// float unfilteredGyroAngleX = gyroX * dt + fLastGyroAngleX;
-	// float unfilteredGyroAngleY = gyroY * dt + fLastGyroAngleY;
-	// float unfilteredGyroAngleZ = gyroZ * dt + fLastGyroAngleZ;
-
+	UpdateMatrix(fgyroX, fgyroY, fgyroZ, dt);
+	Rot.ToEuler(yaw2, pitch2, roll2);
 	// Apply the complementary filter to figure out the change in angle - choice of alpha is
 	// estimated now.  Alpha depends on the sampling rate...
-	const float alpha = 0.96;
+	const float alpha = 0.95;
 	float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
 	float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
 	float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
+
+	Matrix3D m;
+	m.FromEuler(angleZ, angleY, angleX);
+	VectorF r3 = m.GetRow(3);
+//	VectorF r3_accel_diff = r3 -
 	fLastGyroAngleX = angleX;
 	fLastGyroAngleY = angleY;
 	fLastGyroAngleZ = angleZ;
-	pitch 			= fLastGyroAngleX;
-	roll 			= fLastGyroAngleY;
+	pitch 			= fLastGyroAngleY;
+	roll 			= fLastGyroAngleX;
 	yaw 			= fLastGyroAngleZ;
 	Before = now;
 	return true;
+}
+
+void IMU::UpdateMatrix(float fgyroX, float fgyroY, float fgryoZ, float dt)
+{
+	// Omega Correction
+	VectorF r1(1, -fgyroZ*dt, fgyroY*dt);
+	VectorF r2(fgryoZ*dt, 1, -fgyroX*dt);
+	VectorF r3(-fgyroY*dt, fgyroX*dt, 1);
+	Matrix3D omega_c(r1, r2, r3);
+	omega_c.Scale(DEGREES_TO_RADIANS); // Gyro reports results in degrees per second.
+	Rot = Rot.Multiply(omega_c);
+	// Renormalize Rot
+	Rot.Renormalize();
+}
+
+void IMU::Reset()
+{
+	// X/Y angles should be reset to the orientation obtained from accel?
+	fLastGyroAngleZ = 0;
+	fLastGyroAngleX = 0;
+	fLastGyroAngleY = 0;
+
+	// Reset Rot
+	Rot.Reset();
+	Before = millis();
 }
 
 bool IMU::DMPInit()
@@ -357,92 +390,3 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 	return false;
 }
 
-bool IMU::DoSanityCheck(float& yaw, float& pitch, float& roll)
-{
-	// The MPU6050 sometimes gives out a burst of bad values. Hopefully this check will detect if bad
-	// values are received and prevent crazy orientation data to be sent to the attitude control algorithm
-	// We check for bad values by asserting that the current measurements shouldn't differ from the previous
-	// measurements by
-	if (fabs(LastYaw - yaw) > 0.2 * fabs(LastYaw)
-			|| fabs(LastPitch - pitch) > 0.2 * fabs(LastPitch)
-			|| fabs(LastRoll - roll) > 0.2 * fabs(LastRoll))
-	{
-		cExceptionMgr.SetException(BAD_MPU_DATA);
-		LastYaw = yaw; LastPitch = pitch; LastRoll = roll;
-		return false;
-	}
-	LastYaw = yaw; LastPitch = pitch; LastRoll = roll;
-	return true;
-}
-
-bool IMU::processAngles(float angles[],float rates[])
-{			
-	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //400µs
-		
-	//Filter
-	accXf = filterX.update(accX);
-	accYf = filterY.update(accY);
-	accZf = filterZ.update(accZ);
-	
-	// Angular rates provided by gyro
-	gyroXrate = (float) (gyroX-gyroXoffset)/131.0; //140 µsec on Arduino MEGA
-	gyroYrate = -((float) (gyroY-gyroYoffset)/131.0);
-	gyroZrate = ((float) (gyroZ-gyroZoffset)/131.0);
-
-	//Angle provided by accelerometer
-	//Time taken: 400 µsec on Arduino MEGA
-	accYangle = (atan2(accXf,accZf)+PI)*RAD_TO_DEG; //
-	accXangle = (atan2(accYf,accZf)+PI)*RAD_TO_DEG;
-	
-	//Integration of gyro rates to get the angles
-	gyroXangle += gyroXrate*(float)(micros()-timer)/1000000;
-	gyroYangle += gyroYrate*(float)(micros()-timer)/1000000;
-	gyroZangle += gyroZrate*(float)(micros()-timer)/1000000;
-	
-	//Angle calculation through Complementary filter
-	//Time taken: 200 µsec on Arduino MEGA
-	dt = (float)(micros()-timer)/1000000.0;
-	compAngleX = alpha_gyro*(compAngleX+(gyroXrate*dt))   +   c*accXangle; 
-	compAngleY = alpha_gyro*(compAngleY+(gyroYrate*dt))  +   c*accYangle;
-	//compAngleX0 = 0.997*(compAngleX0+(gyroXrate*(float)(micros()-timer)/1000000))   +   (1-0.997)*accXangle; 
-
-	timer = micros(); 
-	
-	//45 deg rotation for roll and pitch (depending how your IMU is fixed to your quad)
-	angles[0]=  -rac22* compAngleX + rac22*compAngleY + ROLL_OFFSET;
-	angles[1]=  -rac22* compAngleX - rac22*compAngleY +2*rac22*PI*RAD_TO_DEG + PITCH_OFFSET;
-	angles[2]=  gyroZangle;
-
-	rates[0]=   -  rac22* gyroXrate + rac22*gyroYrate;
-	rates[1]= - rac22* gyroXrate - rac22*gyroYrate;
-	rates[2]=  gyroZrate;
-		
-	//////* Print Data  for vibration measurements*/ //Todo: Extract function
-	//switch (j)
-	  //{
-
-	////	Frequency print
-	  //case 1: 
-		   //dtostrf(compAngleX - 180  ,6,2,StrAnglesvib);
-		    //SERIAL.print(StrAnglesvib);
-		   //break;
-	  //case 2:
-		   //SERIAL.print("  ");
-		   //break;
-	  //case 3:
-	  		//dtostrf(gyroXangle -180,6,2,StrAnglesvib);	
-			//SERIAL.println(StrAnglesvib);
-		   //j=0;
-		   //break;
-	  //}	   
-	//j++;
-
-	if ( abs(angles[0]) < ROLL_MAX_IMU && abs(angles[1]) < PITCH_MAX_IMU  )
-	{
-	return true;
-	}
-	else
-	{
-	return false;
-	}
-}

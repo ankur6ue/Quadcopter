@@ -9,7 +9,7 @@
 class SignalData
 {
 public:
-    static SignalData &instance(PlotId pid, CurveId cid);
+    static SignalData* instance(PlotId pid, CurveId cid);
 	
     void append( const QPointF &pos );
     void clearStaleValues( double min );

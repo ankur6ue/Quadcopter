@@ -45,7 +45,7 @@ PIDController::PIDController(int frequency, const char* name) : Task(frequency, 
 
 unsigned long PIDController::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 
 	bool bIsPIDSetup = QuadState.IsPIDControlReady();
 	if (bIsPIDSetup)
@@ -61,7 +61,7 @@ unsigned long PIDController::Run()
 		QuadState.PID_Roll 		= output[2];
 		cMotorCtrl.Run();
 	}
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 }
 

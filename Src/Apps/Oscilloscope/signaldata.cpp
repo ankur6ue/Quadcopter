@@ -125,27 +125,8 @@ void SignalData::clearStaleValues( double limit )
     pdata->lock.unlock();
 }
 
-SignalData &SignalData::instance(PlotId pid, CurveId cid)
+SignalData* SignalData::instance(PlotId pid, CurveId cid)
 {
-    static SignalData valueVectorY1;
-    static SignalData valueVectorY2;
-	static SignalData valueVectorP1;
-    static SignalData valueVectorP2;
-	static SignalData valueVectorR1;
-    static SignalData valueVectorR2;
-
-	if (pid == yaw && cid == 0)
-		return valueVectorY1;
-	if (pid == yaw && cid == 1)
-		return valueVectorY2;
-	if (pid == pitch && cid == 0)
-		return valueVectorP1;
-	if (pid == pitch && cid == 1)
-		return valueVectorP2;
-	if (pid == roll && cid == 0)
-		return valueVectorR1;
-	if (pid == roll && cid == 1)
-		return valueVectorR2;
-	// Default value, should never have to actually return this.
-	return valueVectorY1;
+	static SignalData valueVector[NUM_PLOTS*NUM_CURVES]; // NumPlots*NumCurves Per Plot
+	return &valueVector[cid*NUM_PLOTS + pid];
 }

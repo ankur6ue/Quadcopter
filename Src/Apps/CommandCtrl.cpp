@@ -64,12 +64,12 @@ struct Command
 unsigned long CommandCtrl::Run()
 {
 	Command cmd;
-	unsigned long before = micros();
+	unsigned long before = millis();
 	if (CommandReceived(&cmd))
 	{
 		ProcessCommands(&cmd);
 	}
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 
 }

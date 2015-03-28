@@ -21,9 +21,11 @@ extern IMU Imu;
 
 unsigned long CalcOrientation::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	float yaw, pitch, roll, yaw_omega, pitch_omega, roll_omega, pitch_accel, roll_accel, yaw_accel;
-	if (Imu.IntegrateGyro(yaw, pitch, roll, yaw_omega, pitch_omega, roll_omega, yaw_accel, pitch_accel, roll_accel))
+	float yaw2, pitch2, roll2;
+	if (Imu.IntegrateGyro(yaw, pitch, roll, yaw_omega, pitch_omega, roll_omega, yaw_accel,
+			pitch_accel, roll_accel, yaw2, pitch2, roll2))
 	{
 		QuadState.Yaw = yaw; QuadState.Pitch = pitch; QuadState.Roll= roll;
 		QuadState.YawOmega 		= yaw_omega;
@@ -32,7 +34,8 @@ unsigned long CalcOrientation::Run()
 		QuadState.YawAccel 		= yaw_accel;
 		QuadState.PitchAccel 	= pitch_accel;
 		QuadState.RollAccel 	= roll_accel;
+		QuadState.Yaw2 = yaw2; QuadState.Pitch2 = pitch2; QuadState.Roll2= roll2;
 	}
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 }

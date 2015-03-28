@@ -28,7 +28,7 @@ void 	BeaconListener::SetBeaconReceived()
 
 unsigned long BeaconListener::Run()
 {
-	unsigned long before = micros();
+	unsigned long before = millis();
 	// Raise exception if we miss a beacon ( or if you want to be more permissive, two beacons in a row)
 	if ((bBeaconReceived != true) /* && (bLastBeaconReceived != true )*/)
 	{
@@ -36,6 +36,6 @@ unsigned long BeaconListener::Run()
 	}
 	bBeaconReceived = false; // Will be toggled when the next beacon signal is received.
 	bLastBeaconReceived = bBeaconReceived;
-	unsigned long now = micros();
+	unsigned long now = millis();
 	return now - before;
 }

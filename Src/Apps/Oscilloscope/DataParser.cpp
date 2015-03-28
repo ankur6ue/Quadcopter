@@ -16,13 +16,14 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "samplingthread.h"
 #include "signaldata.h"
 #include "DataParser.h"
-#include <qwt_math.h>
+#include "qdatetime.h"
+#include <windows.h>
 
 bool DataParserImplCommands::Parse(char* incomingData, int packetLength, char* commandId)
 {
 	bPrefixFound = false;
 	if (PrefixLength == -1) return false;
-	printf("%s\n", incomingData);
+//	printf("%s\n", incomingData);
 	for (int i = 0; i < max(0, packetLength-PrefixLength); i++)
 	{
 		if (!strncmp(incomingData + i, Prefix, PrefixLength))
@@ -94,8 +95,12 @@ DataParserImpl::DataParserImpl(SamplingThread* samplingThread, const char* _pref
 	{
 		PrefixLength = -1;
 	}
-	DataLength = dataLength;
-	RadToDegree = 180/3.14;
+	DataLength	= dataLength;
+	pLogger		= new Logger(Prefix);
+	Data = NULL;
+	if (DataLength > 0)
+		Data = new float[DataLength];
+	RadToDegree = 180/M_PI;
 	pSamplingThread = samplingThread;
 }
 
@@ -109,15 +114,39 @@ bool DataParserImpl::Parse(char* incomingData, int packetLength, char* commandId
 		if (!strncmp(incomingData + i, Prefix, PrefixLength))
 		{
 			int read = 0;
+			QString str;
 			if (DataLength == 1)
+			{
 				read = sscanf(incomingData+i+PrefixLength, "\t%f\t", Data);
+				str.sprintf("%f", Data[0]);
+			}
 			if (DataLength == 2)
+			{
 				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f", Data, Data+1);
+				str.sprintf("%f %f", Data[0], Data[1]);
+			}
 			if (DataLength == 3)
+			{
 				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f", Data, Data+1, Data+2);
+				str.sprintf("%f %f %f", Data[0], Data[1], Data[2]);
+			}
 			if (DataLength == 4)
+			{
 				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3);
-
+				str.sprintf("%f %f %f %f", Data[0], Data[1], Data[2], Data[3]);
+			}
+			if (DataLength == 5)
+			{
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3, Data+4);
+				str.sprintf("%f %f %f %f %f", Data[0], Data[1], Data[2], Data[3], Data[4]);
+			}
+			if (DataLength == 6)
+			{
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3, Data+4, Data+5);
+				str.sprintf("%f %f %f %f %f %f", Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
+			}
+			Sample* psample = new Sample(0, 0, str);
+			pLogger->AddSample(psample);
 			bPrefixFound = true;
 			break;
 		}
@@ -155,6 +184,52 @@ bool DataParser::ParseData(char* incomingData, int packetLength)
 	return isParsed;
 }
 
+bool DataParserImpl::WriteToLog(QDataStream& out)
+{
+	if (pLogger)
+	{
+		out << *pLogger;
+		return true;
+	}
+	return false;
+}
+
+bool DataParser::WriteToLog()
+{
+	// Create log file
+	// Get time of the day to create unique log file names
+	uint seconds;
+	// Can't be dd:hh:mm:ss as filenames can't contain :
+	QString fileName = QDateTime::fromTime_t(seconds).toUTC().toString("dd.hh.mm.ss");
+	fileName = "C:\\Embedded\\Logs\\" + fileName + ".txt";
+	// If file is already open, close it.
+	if (File.isOpen())
+	{
+		File.close();
+	}
+	File.setFileName(fileName);
+	if (!File.open(QIODevice::ReadWrite)) return false;
+	QDataStream out(&File);
+	
+	for (int i = 0; i < DataParsers.length(); i++)
+	{
+		DataParsers[i]->WriteToLog(out);
+	}
+	File.close();	
+	return true;
+}
+
+bool DataParser::ReadFromLog()
+{
+	if (!File.open(QIODevice::ReadOnly)) return false;
+	QDataStream in(&File);
+	QString str;
+	in >> str;
+	QByteArray ba = str.toLocal8Bit();
+	char* ch = ba.data();
+	File.close();
+}
+
 bool DataParser::ParseAck(char* incomingData, int packetLength, char* commandId)
 {
 	bool isParsed = false;
@@ -178,13 +253,36 @@ void DataParserImplYpr::Plot(double elapsed)
 	if (bPrefixFound)
 	{
 		const QPointF y1( elapsed, /*RadToDegree*/Data[0]);
-		SignalData::instance(yaw, MPU).append( y1 );
+		SignalData::instance(yaw, MPU)->append( y1 );
 
 		const QPointF p1( elapsed, /*RadToDegree*/Data[1]);
-		SignalData::instance(pitch, MPU).append( p1);
+		SignalData::instance(pitch, MPU)->append( p1);
 
 		const QPointF r1( elapsed, /*RadToDegree*/Data[2]);
-		SignalData::instance(roll, MPU).append( r1 );
+		SignalData::instance(roll, MPU)->append( r1 );
+	}
+}
+
+void DataParserImplMpr::Plot(double elapsed)
+{
+	if (bPrefixFound)
+	{
+		float faccX		= Data[4];
+		float faccZ		= Data[3];
+		float faccY		= Data[5];
+
+		float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ /*+ faccY*faccY*/)) * RadToDegree; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+		float accelAngleX = atan(faccY / faccZ) * RadToDegree; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+
+
+		const QPointF y1( elapsed, /*RadToDegree*/0);
+		SignalData::instance(yaw, MPR)->append( y1);
+
+		const QPointF p1( elapsed, /*RadToDegree*/accelAngleY);
+		SignalData::instance(pitch, MPR)->append( p1);
+
+		const QPointF r1( elapsed, /*RadToDegree*/accelAngleX);
+		SignalData::instance(roll, MPR)->append( r1 );
 	}
 }
 
@@ -194,13 +292,13 @@ void DataParserImplPID::Plot(double elapsed)
 	{
 		int SCALE_FACTOR = 1;
 		const QPointF y1( elapsed, SCALE_FACTOR*Data[0]);
-		SignalData::instance(yaw, PID).append( y1 );
+		SignalData::instance(yaw, PID)->append( y1 );
 
 		const QPointF p1( elapsed, SCALE_FACTOR*Data[1]);
-		SignalData::instance(pitch, PID).append( p1);
+		SignalData::instance(pitch, PID)->append( p1);
 
 		const QPointF r1( elapsed, SCALE_FACTOR*Data[2]);
-		SignalData::instance(roll, PID).append( r1 );
+		SignalData::instance(roll, PID)->append( r1 );
 	}
 }
 
@@ -209,12 +307,12 @@ void DataParserImplFusion::Plot(double elapsed)
 	if (bPrefixFound)
 	{
 		const QPointF r2( elapsed, RadToDegree*Data[0]);
-		SignalData::instance(roll, SensorFusion).append( r2 );
+		SignalData::instance(roll, SensorFusion)->append( r2 );
 
 		const QPointF p2( elapsed, RadToDegree*Data[1]);
-		SignalData::instance(pitch, SensorFusion).append( p2);
+		SignalData::instance(pitch, SensorFusion)->append( p2);
 
 		const QPointF y2( elapsed, RadToDegree*Data[2]);
-		SignalData::instance(yaw, SensorFusion).append( y2 );
+		SignalData::instance(yaw, SensorFusion)->append( y2 );
 	}
 }

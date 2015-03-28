@@ -26,8 +26,6 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "Orientation.h"
 #include "SerialDef.h"
 
-MyLog 			cLog1;
-MyLog			cLog2;
 /* The Logger class sends the chracters accumulated in the Log to the serial port every 100 (configurable) ms.
  * This appears to be safe as the packetization timeout (RO) of the Xbee radio that I'm using for radio communication
  * is defined as 3*character time. At a baudrate of 115200, with 10 bits (including start/stop bit) needed for transfering
@@ -41,10 +39,9 @@ MyLog			cLog2;
  */
 
 Scheduler 			cScheduler;
-
-QuadStateLogger 	cQuadStateLogger(0.8, &cLog1, "QuadStateLogger");
-PIDStateLogger		cPIDStateLogger(9, &cLog2, "PIDStateLogger");
-ExceptionLogger		cExceptionLogger(1, NULL, "ExceptionLogger");
+QuadStateLogger 	cQuadStateLogger(1, "QuadStateLogger");
+PIDStateLogger		cPIDStateLogger(10, "PIDStateLogger");
+ExceptionLogger		cExceptionLogger(1, "ExceptionLogger");
 CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(200, "MotorCtrl");
 BeaconListener		cBeaconListener(1, "BeaconListener");
@@ -100,7 +97,7 @@ void setup()
 //    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
     SERIAL.print("In Setup");
     cPIDCntrl.CreateControllers();
-
+    cScheduler.SetPerfReportFrequency(10000); // Report performance every 10 seconds
     cScheduler.RegisterTask(&cQuadStateLogger);
     cScheduler.RegisterTask(&cPIDStateLogger);
     cScheduler.RegisterTask(&cCommandCtrl);

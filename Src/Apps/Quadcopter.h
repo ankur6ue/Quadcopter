@@ -49,9 +49,8 @@ struct QuadStateDef
 		bIsA2R_YKpSet	= false;
 		ePIDType		= AttitudePIDControl;
 	}
-	float 	Yaw;
-	float 	Pitch;
-	float 	Roll;
+	float 	Yaw, Pitch, Roll;
+	float 	Yaw2, Pitch2, Roll2;
 	float 	YawOmega; 	// Angular velocity along Yaw axis
 	float	PitchOmega;
 	float	RollOmega;

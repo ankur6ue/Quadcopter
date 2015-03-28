@@ -21,6 +21,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "Kalman.h"
 #include "Filter.h"
 #include "helper_3dmath.h"
+#include "MatrixOps.h"
 
 class MPU6050;
 
@@ -61,25 +62,26 @@ class IMU
   public:
 
   IMU();
-  void Init();
-  bool DMPInit();
-  void CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
+  void 	Init();
+  bool 	DMPInit();
+  void 	CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
 			double& gYOffset, double& gZOffset, double& aXOffset, double& aYOffset,
 			double& aZOffset);
-  bool processAngles(float angles[],float rates[] );
-  bool GetMotion6(float angles[]);
-  bool IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
-		  float& yaw_accel, float& pitch_accel, float& roll_accel);
-  bool GetYPR(float& yaw, float& pitch, float& roll);
-  bool DoSanityCheck(float& yaw, float& pitch, float& roll);
+  void 	Reset();
+  bool 	GetMotion6(float angles[]);
+  bool 	IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
+		  float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2);
+  bool 	GetYPR(float& yaw, float& pitch, float& roll);
   float GetGyroFactor() { return GYRO_FACTOR; };
   float GetAccelFactor() { return ACCEL_FACTOR; };
+  void 	UpdateMatrix(float fgyroX, float fgyroY, float fgryoZ, float dt);
+
   double gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
   float GYRO_FACTOR;
   float ACCEL_FACTOR;
   float RADIANS_TO_DEGREES;
-
+  float DEGREES_TO_RADIANS;
   private:
 
 	//Kalman kalmanX; // Create the Kalman instances
@@ -114,24 +116,8 @@ class IMU
 	float gyroXrate ;
 	float gyroYrate ;
 	float gyroZrate;
-	
-    //float xv[NZEROS+1], yv[NPOLES+1];
-     //float xv1[NZEROS+1], yv1[NPOLES+1];  
-	float accXf;
-	float accYf;
-	float accZf;
-	
-	Filter filterX;
-	Filter filterY;	
-	Filter filterZ;
-
-	
-	
-	float alpha_gyro;
-    float c;
     float dt;
-	char StrAnglesvib[7];
-	int j;
+    Matrix3D Rot;
 };
 
 #endif

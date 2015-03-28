@@ -44,11 +44,12 @@ public:
 		return LogBuf;
 	}
 */
-	bool AddtoLog(const char* str);
-	void Reset();
-	bool AddtoLog(const char* prefix, float numbers[], int numElem);
-	bool AddtoLog(const char* prefix, int numbers[], int numElem);
-	void AddTerminatingNull()
+	bool 	AddtoLog(const char* str);
+	void 	Reset();
+	int  	GetLogLength();
+	bool 	AddtoLog(const char* prefix, float numbers[], int numElem);
+	bool 	AddtoLog(const char* prefix, int numbers[], int numElem);
+	void 	AddTerminatingNull()
 	{
 		LogBuf[LogLength] = '\0';
 	}
@@ -57,43 +58,40 @@ public:
 	bool 	bError;
 };
 
-class Logger: public Task
+class PrintHelper
 {
 public:
-	Logger(float frequency, MyLog* _plog, const char* name): Task(frequency, name)
-	{
-		SetLog(_plog);
-	}
+	PrintHelper(){};
+	virtual ~PrintHelper(){};
 
-	virtual ~Logger(){};
-
-	void Serialize(const char* prefix, const char* name, float val);
-	void AttachSentinal();
-	void SetLog(MyLog* _log) {pLog = _log; };
-
-	MyLog* pLog;
+	static void Serialize(const char* prefix, const char* name, float val);
+	static void AttachSentinal();
+	static void Print(char* str);
 };
 
-class QuadStateLogger: public Logger
+class QuadStateLogger: public Task
 {
 public:
-	QuadStateLogger(float frequency, MyLog* _plog, const char* _name): Logger(frequency, _plog, _name){};
+	QuadStateLogger(float frequency, const char* _name): Task(frequency, _name){};
 	virtual unsigned long Run();
 	void SendQuadState();
+	MyLog Log;
 };
 
-class PIDStateLogger: public Logger
+class PIDStateLogger: public Task
 {
 public:
-	PIDStateLogger(float frequency, MyLog* _plog, const char* _name): Logger(frequency, _plog, _name){};
+	PIDStateLogger(float frequency, const char* _name): Task(frequency, _name){};
 	virtual unsigned long Run();
+	MyLog Log;
 };
 
-class ExceptionLogger: public Logger
+class ExceptionLogger: public Task
 {
 public:
-	ExceptionLogger(float frequency, MyLog* _plog, const char* _name): Logger(frequency, _plog, _name){};
+	ExceptionLogger(float frequency, const char* _name): Task(frequency, _name){};
 	virtual unsigned long Run();
+	MyLog Log;
 };
 
 

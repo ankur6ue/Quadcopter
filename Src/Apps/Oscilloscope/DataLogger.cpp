@@ -1,6 +1,6 @@
 /**************************************************************************
 
-Filename    :   PlotIdDef.h
+Filename    :   DataLogger.cpp
 Content     :   
 Created     :   Feb 2015
 Authors     :   Ankur Mohan
@@ -12,26 +12,22 @@ agreement provided at the time of installation or download, or which
 otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
+#include "DataLogger.h"
 
-#ifndef PLOTIDDEF
-#define PLOTIDDEF
-
-#define NUM_PLOTS 3 // Yaw/Pitch/Roll
-#define NUM_CURVES 3
-
-enum PlotId
+QDataStream &operator<<(QDataStream &out, Logger& logger)
 {
-	yaw = 0,
-	pitch,
-	roll
-};
+	out << logger.sName;
+	out << logger.Samples; // << operator for Samples will be called automatically
+	return out;
+}
 
-enum CurveId
+QDataStream &operator<<(QDataStream &out, Sample& sample)
 {
-	MPU= 0,
-	PID = 1,
-	MPR = 2,
-	SensorFusion = 3
-};
+	sample.Write(out);
+	return out;
+}
 
-#endif
+void Sample::Write(QDataStream& out)
+{
+	out << sData; 
+}

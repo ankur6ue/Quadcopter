@@ -11,6 +11,28 @@
 #include <qwt_painter.h>
 #include <qevent.h>
 
+struct CurveInfo
+{
+	char* CurveName;
+	QColor Color;
+};
+
+CurveInfo CurveInfoList[] = 
+{
+	{
+		"MPU", 
+		QColor(180, 180, 180) // Corresponds to light
+	},
+	{
+		"PID",
+		QColor(0, 255, 0) // Green
+	},
+	{
+		"General",
+		QColor(255, 0, 0) // Blue
+	}
+};
+
 // Stores the state for each curve such as the Painter, paintedPoints etc. 
 class CurveDrawData
 {
@@ -123,21 +145,13 @@ Plot::Plot( QWidget *parent, PlotId pid ):
     porigin->setLinePen( Qt::gray, 0.0, Qt::DashLine );
     porigin->attach( this );
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < NUM_CURVES; i++)
 	{
 		CurveDrawData *curveDrawData = new CurveDrawData();
 		QwtPlotCurve* pcurve1 = curveDrawData->pPlotCurve;
 		pcurve1->setStyle( QwtPlotCurve::Lines );
-		if (i == 0)
-		{
-			pcurve1->setPen( canvas()->palette().color(QPalette::Light ) );
-			pcurve1->setTitle("MPU");
-		}
-		if (i == 1)
-		{
-			pcurve1->setPen( canvas()->palette().color(QPalette::WindowText) );
-			pcurve1->setTitle("PID");
-		}
+		pcurve1->setPen(CurveInfoList[i].Color);
+		pcurve1->setTitle(CurveInfoList[i].CurveName);
 		pcurve1->setRenderHint( QwtPlotItem::RenderAntialiased, true );
 		pcurve1->setPaintAttribute( QwtPlotCurve::ClipPolygons, false );
 		pcurve1->setData( new CurveData(pid, (CurveId)i) );
@@ -165,12 +179,12 @@ void Plot::start()
 void Plot::replot(CurveDrawData* pcurveDrawData)
 {
 	CurveData *data = static_cast<CurveData *>( pcurveDrawData->pPlotCurve->data() );
-    data->values().lock();
+    data->values()->lock();
 
     QwtPlot::replot();
 	pcurveDrawData->ppaintedPoints = data->size();
 
-    data->values().unlock();
+    data->values()->unlock();
 }
 
 void Plot::replot()
@@ -197,7 +211,7 @@ void Plot::updateCurve(CurveDrawData* pcurveDrawData)
 {
 	QwtPlotCurve* pcurve = pcurveDrawData->pPlotCurve;
 	CurveData *data = static_cast<CurveData *>( pcurve->data() );
-    data->values().lock();
+    data->values()->lock();
 
     const int numPoints = data->size();
     if ( numPoints > pcurveDrawData->ppaintedPoints )
@@ -227,7 +241,7 @@ void Plot::updateCurve(CurveDrawData* pcurveDrawData)
         pcurveDrawData->ppaintedPoints = numPoints;
     }
 
-    data->values().unlock();
+    data->values()->unlock();
 }
 
 void Plot::updateCurve()

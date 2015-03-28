@@ -1,11 +1,13 @@
 #include <qwt_sampling_thread.h>
-#include "Serial.h"
 #include <io.h>
 #include "runningaverage.h"
 #include "echocommanddef.h"
 
 class DataParser;
 class CommandDef;
+class Serial;
+class Serial_Overlapped;
+#define MAX_INCOMING_DATA 5000
 
 class SamplingThread: public QwtSamplingThread
 {
@@ -37,9 +39,10 @@ private:
     virtual double value( double timeStamp ) const;
 	double		pfrequency;
     double		pamplitude;
-	char		cIncomingData[2000];
-	char		cIncomingDataAck[2000]; // Separate buffers for receiving command acks
-	char		cLastSnippet[2000];
+	char		cIncomingData[MAX_INCOMING_DATA];
+	char		cIncomingData2[MAX_INCOMING_DATA];
+	char		cIncomingDataAck[MAX_INCOMING_DATA]; // Separate buffers for receiving command acks
+	char		cLastSnippet[MAX_INCOMING_DATA];
 	unsigned int iDataLength;
 
 	Serial*		Sp;
