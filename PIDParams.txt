@@ -1,5 +1,10 @@
-YawPIDParams 12 0 5
-PitchPIDParams 24 3 10
-RollPIDParams 24 3 10
-DefaultRollSetPoint -5
-DefaultPitchSetPoint -4
+Attitude YawPIDParams 12 0 5
+Attitude PitchPIDParams 24 3 10
+Attitude RollPIDParams 24 3 10
+Rate YawPIDParams 1 0 0
+Rate PitchPIDParams 4.8 1 0
+Rate RollPIDParams 4.8 1 0
+Angle2Rate Params 3.2 3.2 2.6
+RollHoverAttitude 0
+PitchHoverAttitude 0
+PIDType Rate

@@ -11,6 +11,8 @@ $RECYCLE.BIN/
 #ignore all WIP and CMake stuff
 Projects/CMake/
 Projects/Eclipse/.metadata/
+# QT Generated files
+Projects/Win32/QtProjects/Oscilloscope/GeneratedFiles/
 # Windows Installer files
 *.cab
 *.msi
