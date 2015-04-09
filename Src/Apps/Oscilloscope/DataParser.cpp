@@ -200,6 +200,10 @@ bool DataParserImpl::ParsePlaybackData(double elapsed, int timeStamp)
 bool DataParser::ParsePlaybackData(double elapsed)
 {
 	bool ret = false;
+	// The idea behind time stamp is as follows: Each data sample stored in the log carries the time at which it was 
+	// sent from the embedded system. Some of the samples are lost in transmission or get corrupted during transmission. This means that samples belong to different data streams (
+/// 	PID, MPU etc) might not exactly correspond. For long logs, these offsets will accumulate points on plots of different data streams with the same x no longer corresponding to the same time instant. 
+//In order to avoid these discrepancies, we get the timestamp for the first data stream and ignore those samples from other data streams that don't have a corresponding timestamp
 	int timeStamp = DataParsers[0]->GetCurrentTimestamp();
 	for (int i = 0; i < DataParsers.length(); i++)
 	{
