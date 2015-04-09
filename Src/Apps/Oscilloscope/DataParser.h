@@ -31,16 +31,19 @@ public:
 			delete pLogger;
 	}
 
-	virtual void Plot(double elapsed)
+	virtual void	Plot(double elapsed)
 	{
 	}
-	virtual float GetData()
+	virtual float	GetData()
 	{
 		return 0.0;
 	}
-	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
-	
-	virtual bool WriteToLog(QDataStream& out);
+	virtual bool	Parse(char* incomingData, int packetLength, char* commandId = NULL);
+	virtual bool	ParsePlaybackData(double elapsed, int timeStamp);
+	virtual int		GetCurrentTimestamp();
+	virtual bool	WriteToLog(QDataStream& out);
+	virtual bool	ReadFromLog(QDataStream& in);
+	virtual void	ClearLogs();
 	// Responsible for (de)serializing parsed data
 	Logger*	pLogger;
 	char	Prefix[100];
@@ -55,8 +58,28 @@ public:
 class DataParser
 {
 public:
-	DataParser(){}
+	DataParser()
+	{
+		cLastSnippet[0] = '\0';
+	}
+	~DataParser()
+	{
+		for (int i = 0; i < DataParsers.length(); i++)
+		{
+			if (DataParsers[i])
+			{
+				delete DataParsers[i];
+			}
+		}
 
+		for (int i = 0; i < AckParsers.length(); i++)
+		{
+			if (AckParsers[i])
+			{
+				delete AckParsers[i];
+			}
+		}
+	}
 	QList<DataParserImpl*>	DataParsers;
 	QList<DataParserImpl*>	AckParsers;
 	QFile					File;
@@ -79,12 +102,17 @@ public:
 	{
 		AckParsers.removeOne(ackParser);
 	}
-
-	bool ParseData(char* incomingData, int packetLength);
+	
+	bool ParseToken(char* token, int length, double elapsed);
+	void ParseData(char* incomingData, int packetLength, double elapsed);
+	bool ParsePlaybackData(double elapsed);
 	bool ParseAck(char* incomingData, int packetLength, char* commandId);
 	void Plot(double elapsed);
 	bool WriteToLog();
-	bool ReadFromLog();
+	void ClearLogs();
+	bool ReadFromLog(QString& fileName);
+
+	char		cLastSnippet[MAX_INCOMING_DATA];
 };
 
 

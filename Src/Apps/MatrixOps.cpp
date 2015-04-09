@@ -102,9 +102,9 @@ void Matrix3D::Renormalize()
 	VectorF r1_orth = r1 - r2.Dot(error/2);
 	VectorF r2_orth = r2 - r1.Dot(error/2);
 	VectorF r3_orth = r1_orth.Cross(r2_orth);
-	r1_orth.Normalize();
-	r2_orth.Normalize();
-	r3_orth.Normalize();
+	r1_orth.FastNormalize();
+	r2_orth.FastNormalize();
+	r3_orth.FastNormalize();
 	*this = Matrix3D(r1_orth, r2_orth, r3_orth);
 }
 VectorF Matrix3D::GetRow(int rowNum)

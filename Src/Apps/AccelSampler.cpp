@@ -13,29 +13,29 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 **************************************************************************/
 
-#include "BeaconListener.h"
-#include "ErrorsDef.h"
-#include "SoftwareSerial.h"
-#include "SerialDef.h"
+#include "AccelSampler.h"
+#include "Quadcopter.h"
+#include "IMU.h"
 
+extern IMU Imu;
 
-extern ExceptionMgr cExceptionMgr;
-
-void 	BeaconListener::SetBeaconReceived()
-{
-	bBeaconReceived = true;
-}
-
-unsigned long BeaconListener::Run()
+unsigned long AccelSampler::Run()
 {
 	unsigned long before = millis();
-	// Raise exception if we miss a beacon ( or if you want to be more permissive, two beacons in a row)
-	if ((bBeaconReceived != true) /* && (bLastBeaconReceived != true )*/)
-	{
-//		cExceptionMgr.SetException(NO_BEACON_SIGNAL);
-	}
-	bBeaconReceived = false; // Will be toggled when the next beacon signal is received.
-	bLastBeaconReceived = bBeaconReceived;
+	faccXn__ = faccXn_;
+	faccYn__ = faccYn_;
+	faccZn__ = faccZn_;
+	faccXn_ = faccXn;
+	faccYn_ = faccYn;
+	faccZn_ = faccZn;
+	Imu.GetAccel(faccXn, faccYn, faccZn);
 	unsigned long now = millis();
 	return now - before;
+}
+
+void AccelSampler::GetAccelAvg(float& faccX, float& faccY, float& faccZ)
+{
+	faccX = (faccXn + faccXn_ + faccXn__)/3;
+	faccY = (faccYn + faccYn_ + faccYn__)/3;
+	faccZ = (faccZn + faccZn_ + faccZn__)/3;
 }

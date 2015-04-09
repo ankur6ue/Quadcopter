@@ -66,7 +66,7 @@ enum DirtyFlags: int
 	ROLLHOVERATTITUDE	= 2048,
 	SEND_BEACON			= 4096,
 	PIDTYPE				= 8192,
-
+	ALPHA				= 16384
 };
 
 enum PIDFlags: int
@@ -154,6 +154,14 @@ public:
 		lock.lockForWrite();
 		Speed = _speed;
 		SetFlag(SPEED);
+		doUnlock();
+	}
+
+	void SetDCMAlpha(double _alpha	)
+	{
+		lock.lockForWrite();
+		Alpha = _alpha;
+		SetFlag(ALPHA);
 		doUnlock();
 	}
 
@@ -491,6 +499,12 @@ public:
 		return Speed;
 	}
 
+	double GetDCMAlpha()
+	{
+		ClearFlag(ALPHA);
+		return Alpha;
+	}
+
 	bool GetMotorToggle()
 	{
 		ClearFlag(MOTORTOGGLE);
@@ -526,6 +540,7 @@ private:
 	int		PIDParamsFlag;
 	int		MotorState;
 	int		Speed;
+	double	Alpha;
 	int		PitchDisplacement;
 	int		PitchHoverAttitude;
 	int		RollSetPoint;

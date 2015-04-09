@@ -2,7 +2,7 @@
 <?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="de.innot.avreclipse.configuration.lib.debug.1464851421">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="de.innot.avreclipse.configuration.lib.debug.1464851421" moduleId="org.eclipse.cdt.core.settings" name="328P_16MHz">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="de.innot.avreclipse.configuration.lib.debug.1464851421" moduleId="org.eclipse.cdt.core.settings" name="Atmega2560">
 				<externalSettings/>
 				<extensions>
 					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
@@ -12,7 +12,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="a" artifactName="${ProjName}" buildArtefactType="de.innot.avreclipse.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=de.innot.avreclipse.buildArtefactType.staticLib" cleanCommand="rm -f" description="" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser" id="de.innot.avreclipse.configuration.lib.debug.1464851421" name="328P_16MHz" parent="de.innot.avreclipse.configuration.lib.debug" postannouncebuildStep="" postbuildStep="cp &quot;lib${ProjName}.a&quot; ../../../../Bin/AVRCore/." preannouncebuildStep="" prebuildStep="">
+				<configuration artifactExtension="a" artifactName="${ProjName}" buildArtefactType="de.innot.avreclipse.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=de.innot.avreclipse.buildArtefactType.staticLib" cleanCommand="rm -f" description="" errorParsers="org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser" id="de.innot.avreclipse.configuration.lib.debug.1464851421" name="Atmega2560" parent="de.innot.avreclipse.configuration.lib.debug" postannouncebuildStep="" postbuildStep="cp &quot;lib${ProjName}.a&quot; ../../../../Bin/AVRCore/." preannouncebuildStep="" prebuildStep="">
 					<folderInfo id="de.innot.avreclipse.configuration.lib.debug.1464851421." name="/" resourcePath="">
 						<toolChain errorParsers="" id="de.innot.avreclipse.toolchain.winavr.lib.debug.1491058333" name="AVR-GCC Toolchain" superClass="de.innot.avreclipse.toolchain.winavr.lib.debug">
 							<option id="de.innot.avreclipse.toolchain.options.toolchain.objdump.lib.debug.224447113" name="Generate Extended Listing (Source + generated Assembler)" superClass="de.innot.avreclipse.toolchain.options.toolchain.objdump.lib.debug"/>
@@ -31,8 +31,8 @@
 								<option id="de.innot.avreclipse.compiler.option.language.ubitfields.1428480341" name="bitfields are unsigned (-funsigned-bitfields)" superClass="de.innot.avreclipse.compiler.option.language.ubitfields" value="false" valueType="boolean"/>
 								<option id="de.innot.avreclipse.compiler.option.language.uchar.1771438657" name="char is unsigned (-funsigned-char)" superClass="de.innot.avreclipse.compiler.option.language.uchar" value="false" valueType="boolean"/>
 								<option id="de.innot.avreclipse.compiler.option.incpath.487672124" name="Include Paths (-I)" superClass="de.innot.avreclipse.compiler.option.incpath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\arduino\cores\arduino&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\arduino\variants\mega&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\cores\arduino&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\variants\mega&quot;"/>
 								</option>
 								<option id="de.innot.avreclipse.compiler.option.debug.type.1870679627" name="Debug Info Format" superClass="de.innot.avreclipse.compiler.option.debug.type" value="de.innot.avreclipse.compiler.option.debug.level.default" valueType="enumerated"/>
 								<option id="de.innot.avreclipse.compiler.option.def.767389007" name="Define Syms (-D)" superClass="de.innot.avreclipse.compiler.option.def" valueType="definedSymbols">
@@ -45,8 +45,8 @@
 								<option id="de.innot.avreclipse.cppcompiler.option.debug.level.1244041207" name="Generate Debugging Info" superClass="de.innot.avreclipse.cppcompiler.option.debug.level" value="de.innot.avreclipse.cppcompiler.option.debug.level.none" valueType="enumerated"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.1081564671" name="Optimization Level" superClass="de.innot.avreclipse.cppcompiler.option.optimize" value="de.innot.avreclipse.cppcompiler.optimize.size" valueType="enumerated"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.incpath.1837490878" name="Include Paths (-I)" superClass="de.innot.avreclipse.cppcompiler.option.incpath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\arduino\cores\arduino&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\arduino\variants\mega&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\cores\arduino&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;..\..\..\..\Src\Core\variants\mega&quot;"/>
 								</option>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.shortenums.580870388" name="Short enums (-fshort-enums)" superClass="de.innot.avreclipse.cppcompiler.option.optimize.shortenums" value="false" valueType="boolean"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.packstruct.1930496433" name="Pack structs (-fpack-struct)" superClass="de.innot.avreclipse.cppcompiler.option.optimize.packstruct" value="false" valueType="boolean"/>
@@ -88,6 +88,7 @@
 		<configuration configurationName="Debug">
 			<resource resourceType="PROJECT" workspacePath="/AVRCore"/>
 		</configuration>
+		<configuration configurationName="Mega2560_16MHz"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">

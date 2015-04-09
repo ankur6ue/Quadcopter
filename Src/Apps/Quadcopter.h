@@ -70,6 +70,7 @@ struct QuadStateDef
 	float	A2R_RKp;
 	float	A2R_YKp;
 	bool  	bMotorToggle;
+	float	Alpha;
 	int		Speed;
 	int		QuadStateFlag;
 	PIDType	ePIDType;

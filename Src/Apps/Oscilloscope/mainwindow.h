@@ -23,13 +23,17 @@ class Plot;
 class Knob;
 class WheelBox;
 class QLineEdit;
+class QSlider;
 class QPushButton;
 class QCheckBox;
+class QListView;
+class QFileSystemModel;
 struct EchoCommand;
 class MainWindow;
 class Joystick;
 class QThread;
 class PIDTypeMenu;
+class SamplingThread;
 
 class ArrowPadDef: public QWidget
 {
@@ -123,11 +127,13 @@ public:
     double	signalInterval() const;
 	void	ReadPIDParams(AttitudePIDParams&, RatePIDParams&);
 	void	ResetSetPoint();
+	void	SetPlotState(bool);
 	// To set up the thread that runs the game controller input
 	void	SetupCtrlInput();
 	// Create different UI windows and manage layouts
 	void CreatePlots();
 	void CreatePlotControls();
+	void CreateFlightLogControls();
 	void CreateAngle2RateControls();
 	void CreatePIDControls();
 	void CreateAttitudePIDControls();
@@ -136,17 +142,20 @@ public:
 	void SetPIDParams();
 	void CreateQuadStatePanel();
 	void CreateQuadControlPanel();
+	void CreateDCMControlPanel();
 	void ManageLayout();
 	void MotorsOn();
-
+	void SetSamplingThread(SamplingThread* psamplingThread);
 Q_SIGNALS:
     void amplitudeChanged( double );
     void frequencyChanged( double );
     void signalIntervalChanged( double );
 	void startCtrlInputThread();
+	void logFileSelected(QString);
 
 public Q_SLOTS:
     void setAmplitude( double );
+	void DCMAlphaSliderMoved(int);
 	void textChanged(const QString &);
 	void speedChanged(double);
 	void PitchHoverAngleChanged(double);
@@ -169,11 +178,16 @@ public Q_SLOTS:
 	void BLStateChanged( int state);
 	void echoCommand(EchoCommand*);
 	void motorToggleClicked();
+	void recordToggleClicked();
 	// Handle game controller axis movement
 	void AxisMoved(long, long, long, int);
 	void CreateMenuItems();
 	void PIDCtrlTypeChanged();
 	void MotorsOff();
+	void onLogFileSelected(const QModelIndex&);
+	void onPlayToggled();
+	void onLogPlaybackOver();
+
 private:
 
 	// Widget pointers. 
@@ -189,12 +203,15 @@ private:
 	WheelBox			*pA2RYawWheel;
 	WheelBox			*pA2RPitchWheel;
 	WheelBox			*pA2RRollWheel;
+	QSlider				*pAlphaSlider;
 	AttitudePIDControls	*pAttPIDCtrl;
 	RatePIDControls		*pRatePIDCtrl;
 	CommonPIDControls	*pCommonPIDCtrl;
 
 	WheelBox			*pSpeedWheel;
 	QPushButton			*pMotorToggle;
+	QPushButton			*pRecordingToggle;
+	QPushButton			*pPlayToggle;
 	QLineEdit			*pPIDType;
 	QLineEdit			*pExceptionType;
 	QLineEdit			*pQuadSpeed;
@@ -211,7 +228,10 @@ private:
 	QLineEdit			*pQuadA2RPKp;  // Angle to Roll P coefficients. 
 	QLineEdit			*pQuadA2RRKp; 
 	QLineEdit			*pQuadA2RYKp; 
-
+	// Manages the log file list
+	QListView			*pLogFilelist;
+	// Log file model
+	QFileSystemModel	*pfileModel;
 	QCheckBox	*pFR, *pFL, *pBR, *pBL;
 
 	// PID Type Menu
@@ -219,17 +239,19 @@ private:
 
 	ArrowPadDef* pArrowPad;
 	// Widget state variables
-	bool		bMotorToggle;
-    Plot		*y_plot;
-	Plot		*p_plot;
-	Plot		*r_plot;
+	bool				bMotorToggle;
+	bool				bRecordToggle;
+	bool				bIsPlaying;
+    Plot				*y_plot;
+	Plot				*p_plot;
+	Plot				*r_plot;
 
 	// Joystick pointer
-	Joystick	*pJoystick;
+	Joystick			*pJoystick;
 	// Pointer to the thread that runs the joystick
-	QThread		*pThread;
-	
-	double		pamplitude;
+	QThread				*pThread;
+	SamplingThread		*pSamplingThread;
+	double				pamplitude;
 	
 public:
 	// These are the set points we revert to when we reset the motors.

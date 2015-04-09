@@ -17,6 +17,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "plot.h"
 #include "knob.h"
 #include "wheelbox.h"
+#include "QSlider.h"
 #include <qwt_scale_engine.h>
 #include <qlabel.h>
 #include <qlayout.h>
@@ -28,6 +29,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "commanddef.h"
 #include "echocommanddef.h"
 #include "joystick.h"
+#include "samplingthread.h"
 
 void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& ratePIDParams)
 {
@@ -96,10 +98,12 @@ MainWindow::MainWindow( QWidget *parent ):
 	ReadPIDParams(mAttPIDParams, mRatePIDParams);
 	CreatePlots();
 	CreatePlotControls();
+	CreateFlightLogControls();
 	CreateMenuItems();
 	CreatePIDControls();
 	CreateQuadStatePanel();
 	CreateQuadControlPanel();
+	CreateDCMControlPanel();
 	ManageLayout();
 	
     connect( pAmplitudeKnob, SIGNAL( valueChanged( double ) ),
@@ -153,6 +157,20 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	connect( pMotorToggle, SIGNAL( clicked() ), SLOT( motorToggleClicked() ) );
 
+	connect(pRecordingToggle, SIGNAL(clicked()), SLOT(recordToggleClicked()));
+
+	connect(pAlphaSlider, SIGNAL(valueChanged(int)), SLOT(DCMAlphaSliderMoved(int)));
+
+}
+
+void MainWindow::SetSamplingThread(SamplingThread* pthread)
+{
+	pSamplingThread = pthread;
+	connect(pRecordingToggle, SIGNAL(clicked()), pSamplingThread, SLOT(recordToggleClicked()));
+	connect(this, SIGNAL(logFileSelected(QString)), pSamplingThread, SLOT(onLogFileSelected(QString)));
+	connect(pPlayToggle, SIGNAL(clicked()), pSamplingThread, SLOT(onPlayToggled()));
+	// Once flight logs have finished playing, disable the play button
+	connect(pSamplingThread, SIGNAL(logPlaybackOver()), this, SLOT(onLogPlaybackOver()));
 }
 
 void MainWindow::start()
@@ -186,6 +204,12 @@ void MainWindow::setAmplitude( double amplitude )
 	y_plot->replot();
 	p_plot->replot();
 	r_plot->replot();
+}
+
+void MainWindow::DCMAlphaSliderMoved(int sliderVal)
+{
+	double newVal = sliderVal / 10.0;
+	UserCommands::Instance().SetDCMAlpha(newVal);
 }
 
 void MainWindow::PIDCtrlTypeChanged()
@@ -373,7 +397,7 @@ void MainWindow::motorToggleClicked()
 {
 	bMotorToggle = !bMotorToggle;
 	pMotorToggle->setText(bMotorToggle? "On": "Off");
-	if (bMotorToggle == false) 
+	if (bMotorToggle == false)
 	{
 		MotorsOff();
 	}
@@ -381,6 +405,12 @@ void MainWindow::motorToggleClicked()
 	{
 		MotorsOn();
 	}
+}
+
+void MainWindow::recordToggleClicked()
+{
+	bRecordToggle = !bRecordToggle;
+	pRecordingToggle->setText(bRecordToggle ? "Pause" : "Record");
 }
 
 void MainWindow::ResetSetPoint()

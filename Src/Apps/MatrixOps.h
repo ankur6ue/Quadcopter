@@ -73,6 +73,13 @@ public:
 		return temp;
 	}
 
+	void FastNormalize()
+	{
+		Scale(0.5*(3 - this->Dot(*this)));
+	}
+
+	VectorF	SetZero() { x = 0; y = 0; z = 0; }
+
 	VectorF	Scale(float scaleFactor)
 	{
 		x = x*scaleFactor; y = y*scaleFactor; z = z*scaleFactor;

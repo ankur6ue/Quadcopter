@@ -64,19 +64,21 @@ class IMU
   IMU();
   void 	Init();
   bool 	DMPInit();
-  void 	CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
-			double& gYOffset, double& gZOffset, double& aXOffset, double& aYOffset,
-			double& aZOffset);
+  void 	CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
+			int& gYOffset, int& gZOffset, int& aXOffset, int& aYOffset,
+			int& aZOffset);
   void 	Reset();
   bool 	GetMotion6(float angles[]);
+  bool 	GetAccel(float& faccX, float& faccY, float& faccZ);
   bool 	IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
 		  float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2);
   bool 	GetYPR(float& yaw, float& pitch, float& roll);
   float GetGyroFactor() { return GYRO_FACTOR; };
   float GetAccelFactor() { return ACCEL_FACTOR; };
-  void 	UpdateMatrix(float fgyroX, float fgyroY, float fgryoZ, float dt);
+  void 	UpdateMatrix(float fgyroX, float fgyroY, float fgryoZ, float faccX,
+			float faccY, float faccZ, float dt);
 
-  double gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
+  int 	gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
   float GYRO_FACTOR;
   float ACCEL_FACTOR;
@@ -113,10 +115,12 @@ class IMU
 	uint32_t timer;
 	float gyroXoffset, gyroYoffset, gyroZoffset;
 	
-	float gyroXrate ;
-	float gyroYrate ;
-	float gyroZrate;
-    float dt;
+	float 	gyroXrate ;
+	float 	gyroYrate ;
+	float 	gyroZrate;
+    float 	dt;
+    int		YawDrift;
+    VectorF RPCorrection_I;
     Matrix3D Rot;
 };
 

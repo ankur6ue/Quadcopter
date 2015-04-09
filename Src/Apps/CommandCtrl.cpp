@@ -280,5 +280,11 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		double disp = cmd->Param;
 		cPIDCntrl.OnControlInput(disp, Axis_Yaw);
 	}
+
+	if (!strcmp(cmd->Name, "DCMAlpha"))
+	{
+		double alpha = cmd->Param;
+		QuadState.Alpha = alpha;
+	}
 };
 

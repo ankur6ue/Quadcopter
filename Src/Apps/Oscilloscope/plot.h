@@ -22,8 +22,9 @@ public:
     virtual void replot();
 
     virtual bool eventFilter( QObject *, QEvent * );
-	PlotId ePlotId;
-
+	PlotId	ePlotId;
+	bool	bUpdate;
+	QwtSystemClock	pclock;
 public Q_SLOTS:
     void setIntervalLength( double );
 
@@ -42,7 +43,6 @@ private:
     QwtPlotMarker *porigin;
 	QList<CurveDrawData*> CurveDrawDataList;
  
-    QwtInterval pinterval;
-    int ptimerId;
-    QwtSystemClock pclock;
+    QwtInterval		pinterval;
+    int				ptimerId;
 };

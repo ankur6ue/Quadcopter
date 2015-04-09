@@ -15,7 +15,6 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #include "samplingthread.h"
 #include "Serial.h"
-#include "Serial_Overlapped.h"
 #include "signaldata.h"
 #include <qwt_math.h>
 #include <math.h>
@@ -23,6 +22,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "commanddef.h"
 #include <qlist.h>
 #include "../MatrixOps.h"
+#include "QPushButton.h"
 
 #if QT_VERSION < 0x040600
 #define qFastSin(x) ::sin(x)
@@ -42,43 +42,38 @@ SamplingThread::SamplingThread( QObject *parent ):
 	pamplitude( 20.0 ), iDataLength(4000), BytesRead(0)
 {
 	SetupSerialPort();
-	cLastSnippet[0] = '\0';
 	pDataParser = new DataParser();
-	pDataParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
-	pDataParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
-	pDataParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
-	pDataParser->RegisterDataParser(new DataParserImplMpr(this, "mpr", 6));
-	pDataParser->RegisterDataParser(new DataParserImplException(this));
-	pDataParser->RegisterDataParser(new DataParserImplCommands(this));
-	//	pDataParser->RegisterDataParser(new DataParserImplBeacon(this));
-	pDataParser->RegisterAckParser(new DataParserImplAck(this));
-	/*
-	//	fp = fopen("C:\\Qt\\SensorData.txt", "w");
-	Matrix3D mat;
-	for (int i = 1; i < 20; i++)
-	{
-		float dox = 0.1; float doy = 0.1; float doz = 0.1;
-		VectorF r1(1, -doz, doy);
-		VectorF r2(doz, 1, -dox);
-		VectorF r3(-doy, dox, 1);
-		Matrix3D o(r1, r2, r3);
-		//o.Scale(M_PI/180);
-		mat = mat.Multiply(o);
-		mat.Renormalize();
-		float yaw, pitch, roll;
-		mat.ToEuler(yaw, pitch, roll);
-		printf("%f %f %f\n", yaw, pitch, roll);
-	}
-	int k = 0;
-	*/
+	pDataParser_Playback = new DataParser();
+	RegisterDataParsers(pDataParser);
+	RegisterDataParsers(pDataParser_Playback);
+	bRunFlightLog = false;
 }
 
+SamplingThread::~SamplingThread()
+{
+	if (pDataParser)
+		delete pDataParser;
+	if (pDataParser_Playback)
+		delete pDataParser_Playback;
+}
 
+void SamplingThread::RegisterDataParsers(DataParser* pParser)
+{
+	pParser->RegisterDataParser(new DataParserImplYpr(this, "ypr", 3));
+	pParser->RegisterDataParser(new DataParserImplFusion(this, "fusion", 3));
+	pParser->RegisterDataParser(new DataParserImplPID(this, "PID", 3));
+	pParser->RegisterDataParser(new DataParserImplMpr(this, "mpr", 6));
+	pParser->RegisterDataParser(new DataParserImplException(this));
+	pParser->RegisterDataParser(new DataParserImplCommands(this));
+	//	pParser->RegisterDataParser(new DataParserImplBeacon(this));
+	pParser->RegisterAckParser(new DataParserImplAck(this));
+}
 // Sets up the serial port on port 16, baud rate = 115200
 int SamplingThread::SetupSerialPort()
 {
-	int success = false;
-	Sp = new Serial("\\\\.\\COM21",115200);    // adjust as needed
+	int success		= false;
+	bIsRecording	= false;
+	Sp = new Serial("\\\\.\\COM4",115200);    // adjust as needed
 //	Sp = new Serial("\\\\.\\COM20",115200);
 //	Sp = new Serial("\\\\.\\COM23",115200);
 
@@ -100,6 +95,16 @@ void SamplingThread::setAmplitude( double amplitude )
 	pamplitude = amplitude;
 }
 
+void SamplingThread::recordToggleClicked()
+{
+	bIsRecording = !bIsRecording;
+	if (bIsRecording == false)
+	{
+		pDataParser->WriteToLog();
+		pDataParser->ClearLogs();
+	}
+}
+
 double SamplingThread::frequency() const
 {
 	return pfrequency;
@@ -108,6 +113,21 @@ double SamplingThread::frequency() const
 double SamplingThread::amplitude() const
 {
 	return pamplitude;
+}
+
+void SamplingThread::onPlayToggled()
+{
+	QPushButton* button = (QPushButton*)(sender());
+	bIsPlaying = !bIsPlaying;
+	button->setText(bIsPlaying ? "Stop" : "Play");
+}
+// Called when user selects a log file from the log file listview
+void SamplingThread::onLogFileSelected(QString fileName)
+{
+	QString fullName = "C:\\Embedded\\Logs\\" + fileName;
+	pDataParser_Playback->ReadFromLog(fullName);
+	bRunFlightLog	= true;
+	bIsPlaying		= true;
 }
 
 void SamplingThread::sample( double elapsed )
@@ -119,75 +139,32 @@ void SamplingThread::sample( double elapsed )
 	}
 
 	if ( pfrequency > 0.0 )
-	{	
-		BytesRead = Sp->ReadData(cIncomingData, iDataLength);
-		// The quadcopter hardware sends each packet of data with a sentinal character ('z') in the end. 
-		// --data1--z--data2--z--data3--z...
-		// The sentinal helps us determine if a packet received is a complete data packet and also to separate out
-		// different data packets. However a packet could be split during data transmission so the sequence of characters
-		// read doesn't have a sentinal in the end. To handle this case, we split the character string received into substrings
-		// separated by the sentinal character. The last substring could be either a full packet or could have been split up
-		// during transmission. If it was split up during transmission, it wouldn't have a terminating sentinal character. Such
-		// partial substrings are stored in the LastSnippet array and preprended to the next burst of characters received. This
-		// mechanism allows us to process data packets in a contiguous manner. 
-		// A key assumption made here is there is no data loss during transmission. This assumption could be easily violated, 
-		// particularly as the quadcopter travels away from the receiver. We should look into making this algorithm robust to data
-		// loss during transmission
-		// Note that technically we should also adjust the "elapsed" parameter to factor in the different times
-		// the packets are received. For now this is not a problem, but is a good TBD.
-		if (BytesRead != -1)
+	{
+		// If we want to run the flight log and play log is set to true
+		if (bRunFlightLog && bIsPlaying)
 		{
-			char* next_token = NULL;
-			char* token;
-		//	printf("b%d\n", BytesRead);
-			printf(cIncomingData);
-			memcpy(cIncomingData2, cIncomingData, MAX_INCOMING_DATA);
-			// Prepend new characters read with lastSnippet
-			int lastSnippetSize = strlen(cLastSnippet);
-			if (lastSnippetSize)
+			if (pDataParser_Playback->ParsePlaybackData(elapsed))
 			{
-				char tmp[MAX_INCOMING_DATA];
-				memcpy(tmp, cIncomingData2, BytesRead);
-				memcpy(cIncomingData2, cLastSnippet, lastSnippetSize);
-				memcpy(cIncomingData2 + lastSnippetSize, tmp, BytesRead);
-				// We used this snippet, so put a terminating null in the beginning
-				memset(cLastSnippet, 0, MAX_INCOMING_DATA);
-				memset(tmp, 0, MAX_INCOMING_DATA);
+				pDataParser_Playback->Plot(elapsed);
 			}
-			// We check for the last character in the incoming data here and not after passing cIncomingData to
-			// strtok as strtok modifies the data passed to it.
-			char lastChar = '\0';
-			int len = strlen(cIncomingData2);
-			if (len >= 1)
+			else // If all parsers failed, that means there is no more data in the log. Set runflightlog to false
 			{
-				lastChar = cIncomingData2[len-1];
+				bRunFlightLog = false;
+				emit logPlaybackOver();
 			}
-			token = strtok_s(cIncomingData2, "z", &next_token);
-			while(*next_token != '\0')
+		}
+		if (!bRunFlightLog)
+		{
+			BytesRead = Sp->ReadData(cIncomingData, iDataLength);
+			if (BytesRead != -1)
 			{
-				pDataParser->ParseData(token, strlen(token));
-				pDataParser->Plot(elapsed);
-				token = strtok_s(NULL, "z", &next_token);
-			}
-			// we are at the last snippet. Check if it has a sentinal in the end.
-			if (lastChar == 'z')
-			{
-				// Sentinal was found, this means that the last snippet is a full command packet. Go ahead and parse it
-				if (token)
-				{
-					pDataParser->ParseData(token, strlen(token));
-					pDataParser->Plot(elapsed);
-				}
+				pDataParser->ParseData(cIncomingData, BytesRead, elapsed);
 			}
 			else
 			{
-				// Sentinal was missing, store the lastSnippet and prepend to the next burst of data received, which should 
-				// start with the missing characters of this snippet. 
-				strcpy(cLastSnippet, token);
+			//	printf("missed\n");
 			}
-			memset(cIncomingData, 0, MAX_INCOMING_DATA);
-			memset(cIncomingData2, 0, MAX_INCOMING_DATA);
-		}	
+		}
 
 		UserCommands* commandInstance = &(UserCommands::Instance());
 		if (commandInstance->IsSendBeacon())
@@ -280,6 +257,15 @@ void SamplingThread::sample( double elapsed )
 				double disp = commandInstance->GetYawDisplacement();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef("YawDisp", disp);
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(ALPHA))
+			{
+				commandInstance->doLock();
+				double alpha = commandInstance->GetDCMAlpha();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("DCMAlpha", alpha);
 				commandList.push_back(pcommandDef);
 			}
 

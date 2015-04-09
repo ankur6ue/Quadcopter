@@ -104,6 +104,13 @@ DataParserImpl::DataParserImpl(SamplingThread* samplingThread, const char* _pref
 	pSamplingThread = samplingThread;
 }
 
+void DataParserImpl::ClearLogs()
+{
+	if (pLogger)
+	{
+		pLogger->Reset();
+	}
+}
 bool DataParserImpl::Parse(char* incomingData, int packetLength, char* commandId)
 {
 	bPrefixFound = false;
@@ -114,44 +121,91 @@ bool DataParserImpl::Parse(char* incomingData, int packetLength, char* commandId
 		if (!strncmp(incomingData + i, Prefix, PrefixLength))
 		{
 			int read = 0;
+			float timeStamp;
 			QString str;
 			if (DataLength == 1)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t", Data);
-				str.sprintf("%f", Data[0]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t", &timeStamp, Data);
+				str.sprintf("%d %f ", DataLength, Data[0]);
 			}
 			if (DataLength == 2)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f", Data, Data+1);
-				str.sprintf("%f %f", Data[0], Data[1]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f", &timeStamp, Data, Data+1);
+				str.sprintf("%d %f %f ", DataLength, Data[0], Data[1]);
 			}
 			if (DataLength == 3)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f", Data, Data+1, Data+2);
-				str.sprintf("%f %f %f", Data[0], Data[1], Data[2]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f", &timeStamp, Data, Data+1, Data+2);
+				str.sprintf("%d %f %f %f", DataLength, Data[0], Data[1], Data[2]);
 			}
 			if (DataLength == 4)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3);
-				str.sprintf("%f %f %f %f", Data[0], Data[1], Data[2], Data[3]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f", &timeStamp, Data, Data+1, Data+2, Data+3);
+				str.sprintf("%d %f %f %f %f", DataLength, Data[0], Data[1], Data[2], Data[3]);
 			}
 			if (DataLength == 5)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3, Data+4);
-				str.sprintf("%f %f %f %f %f", Data[0], Data[1], Data[2], Data[3], Data[4]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f\t%f", &timeStamp, Data, Data+1, Data+2, Data+3, Data+4);
+				str.sprintf("%d %f %f %f %f %f", DataLength, Data[0], Data[1], Data[2], Data[3], Data[4]);
 			}
 			if (DataLength == 6)
 			{
-				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f\t%f", Data, Data+1, Data+2, Data+3, Data+4, Data+5);
-				str.sprintf("%f %f %f %f %f %f", Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
+				read = sscanf(incomingData+i+PrefixLength, "\t%f\t%f\t%f\t%f\t%f\t%f\t%f", &timeStamp, Data, Data+1, Data+2, Data+3, Data+4, Data+5);
+				str.sprintf("%d %f %f %f %f %f %f", DataLength, Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
 			}
-			Sample* psample = new Sample(0, 0, str);
-			pLogger->AddSample(psample);
+			if (pSamplingThread->IsRecording())
+			{
+				Sample* psample = new Sample((int)timeStamp, 0, str);
+				pLogger->AddSample(psample);
+			}
 			bPrefixFound = true;
 			break;
 		}
 	}
 	return bPrefixFound;
+}
+
+int  DataParserImpl::GetCurrentTimestamp()
+{
+	Sample* psample = pLogger->GetCurrentSample();
+	if (psample)
+	{
+		return psample->GetTimestamp();
+	}
+	return 0;
+}
+bool DataParserImpl::ParsePlaybackData(double elapsed, int timeStamp)
+{
+	Sample* psample = pLogger->GetCurrentSample();
+	pLogger->IncrementCurrentSampleIndex();
+	bPrefixFound = false;
+	if (psample)
+	{
+		if (psample->Parse(Data, timeStamp))
+		{
+			bPrefixFound = true;
+			return true;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < DataLength; i++)
+		{
+			Data[i] = 0;
+		}
+	}
+	return false;
+}
+
+bool DataParser::ParsePlaybackData(double elapsed)
+{
+	bool ret = false;
+	int timeStamp = DataParsers[0]->GetCurrentTimestamp();
+	for (int i = 0; i < DataParsers.length(); i++)
+	{
+		ret |= DataParsers[i]->ParsePlaybackData(elapsed, timeStamp);
+	}
+	return ret;
 }
 
 bool DataParserImplException::Parse(char* incomingData, int packetLength, char* commandId)
@@ -174,12 +228,86 @@ bool DataParserImplException::Parse(char* incomingData, int packetLength, char* 
 	return bPrefixFound;
 }
 
-bool DataParser::ParseData(char* incomingData, int packetLength)
+// The quadcopter hardware sends each packet of data with a sentinal character ('z') in the end. 
+// --data1--z--data2--z--data3--z...
+// The sentinal helps us determine if a packet received is a complete data packet and also to separate out
+// different data packets. However a packet could be split during data transmission so the sequence of characters
+// read doesn't have a sentinal in the end. To handle this case, we split the character string received into substrings
+// separated by the sentinal character. The last substring could be either a full packet or could have been split up
+// during transmission. If it was split up during transmission, it wouldn't have a terminating sentinal character. Such
+// partial substrings are stored in the LastSnippet array and preprended to the next burst of characters received. This
+// mechanism allows us to process data packets in a contiguous manner. 
+// A key assumption made here is there is no data loss during transmission. This assumption could be easily violated, 
+// particularly as the quadcopter travels away from the receiver. We should look into making this algorithm robust to data
+// loss during transmission
+// Note that technically we should also adjust the "elapsed" parameter to factor in the different times
+// the packets are received. For now this is not a problem, but is a good TBD.
+
+void DataParser::ParseData(char* incomingData, int bytesRead, double elapsed)
+{
+	char* next_token = NULL;
+	char* token;
+	//	printf("b%d\n", BytesRead);
+	printf(incomingData);
+	// Prepend new characters read with lastSnippet
+	int lastSnippetSize = strlen(cLastSnippet);
+	if (lastSnippetSize)
+	{
+		char tmp[MAX_INCOMING_DATA];
+		memcpy(tmp, incomingData, bytesRead);
+		memcpy(incomingData, cLastSnippet, lastSnippetSize);
+		memcpy(incomingData + lastSnippetSize, tmp, bytesRead);
+		// We used this snippet, so put a terminating null in the beginning
+		memset(cLastSnippet, 0, MAX_INCOMING_DATA);
+		memset(tmp, 0, MAX_INCOMING_DATA);
+	}
+	// We check for the last character in the incoming data here and not after passing incomingData to
+	// strtok as strtok modifies the data passed to it.
+	char lastChar = '\0';
+	int len = strlen(incomingData);
+	if (len >= 1)
+	{
+		lastChar = incomingData[len - 1];
+	}
+	token = strtok_s(incomingData, "z", &next_token);
+	while (*next_token != '\0')
+	{
+		// If any parser succeeded, call plot
+		if (ParseToken(token, strlen(token), elapsed))
+		{ 
+			Plot(elapsed);
+		}
+		
+		token = strtok_s(NULL, "z", &next_token);
+	}
+	// we are at the last snippet. Check if it has a sentinal in the end.
+	if (lastChar == 'z')
+	{
+		// Sentinal was found, this means that the last snippet is a full command packet. Go ahead and parse it
+		if (token)
+		{
+			if(ParseToken(token, strlen(token), elapsed))
+			{
+				Plot(elapsed);
+			}
+		}
+	}
+	else
+	{
+		// Sentinal was missing, store the lastSnippet and prepend to the next burst of data received, which should 
+		// start with the missing characters of this snippet. 
+		strcpy(cLastSnippet, token);
+	}
+	memset(incomingData, 0, MAX_INCOMING_DATA);
+}
+
+bool DataParser::ParseToken(char* token, int length, double elapsed)
 {
 	bool isParsed = false;
 	for (int i = 0; i < DataParsers.length(); i++)
 	{
-		isParsed = DataParsers[i]->Parse(incomingData, packetLength);
+		// If any parser returns true, return true
+		isParsed |= DataParsers[i]->Parse(token, length);
 	}
 	return isParsed;
 }
@@ -192,6 +320,37 @@ bool DataParserImpl::WriteToLog(QDataStream& out)
 		return true;
 	}
 	return false;
+}
+
+bool DataParserImpl::ReadFromLog(QDataStream& in)
+{
+	// Clear any previous data
+	pLogger->Reset();
+	QString prefix;
+	in >> prefix;
+	// Must match the prefix for this data parser
+	if (prefix.compare(Prefix) != 0) return false;
+	// Read number of samples
+	QString str;
+	in >> str;
+	bool ok;
+	int numSamples = str.toInt(&ok);
+	for (int i = 0; i < numSamples; i++)
+	{
+		// Read next string. Should be a data string
+		in >> str;
+		Sample* pSample = new Sample(0, 0, str);
+		pLogger->AddSample(pSample);
+	}
+	return true;
+}
+
+void DataParser::ClearLogs()
+{
+	for (int i = 0; i < DataParsers.length(); i++)
+	{
+		DataParsers[i]->ClearLogs();
+	}
 }
 
 bool DataParser::WriteToLog()
@@ -219,15 +378,26 @@ bool DataParser::WriteToLog()
 	return true;
 }
 
-bool DataParser::ReadFromLog()
+bool DataParser::ReadFromLog(QString& fileName)
 {
+	if (File.isOpen())
+	{
+		File.close();
+	}
+	File.setFileName(fileName);
 	if (!File.open(QIODevice::ReadOnly)) return false;
 	QDataStream in(&File);
-	QString str;
-	in >> str;
-	QByteArray ba = str.toLocal8Bit();
-	char* ch = ba.data();
+	bool ret = false;
+	for (int i = 0; i < DataParsers.length(); i++)
+	{
+		if (!DataParsers[i]->ReadFromLog(in))
+		{
+			File.close();
+			return false;
+		}
+	}
 	File.close();
+	return true;
 }
 
 bool DataParser::ParseAck(char* incomingData, int packetLength, char* commandId)
@@ -267,22 +437,32 @@ void DataParserImplMpr::Plot(double elapsed)
 {
 	if (bPrefixFound)
 	{
+		/*
 		float faccX		= Data[4];
 		float faccZ		= Data[3];
 		float faccY		= Data[5];
 
-		float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ /*+ faccY*faccY*/)) * RadToDegree; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
+		float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RadToDegree; //atan(-1*accX/sqrt(pow(accY,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
 		float accelAngleX = atan(faccY / faccZ) * RadToDegree; // atan(accY/sqrt(pow(accX,2) + pow(accZ,2)))*RADIANS_TO_DEGREES;
 
 
-		const QPointF y1( elapsed, /*RadToDegree*/0);
+		const QPointF y1( elapsed, 0);
 		SignalData::instance(yaw, MPR)->append( y1);
 
-		const QPointF p1( elapsed, /*RadToDegree*/accelAngleY);
+		const QPointF p1( elapsed, accelAngleY);
 		SignalData::instance(pitch, MPR)->append( p1);
 
-		const QPointF r1( elapsed, /*RadToDegree*/accelAngleX);
+		const QPointF r1( elapsed, accelAngleX);
 		SignalData::instance(roll, MPR)->append( r1 );
+		*/
+		const QPointF y1(elapsed, 50*Data[0]);
+		SignalData::instance(yaw, MPR)->append(y1);
+
+		const QPointF p1(elapsed, 50*Data[1]);
+		SignalData::instance(pitch, MPR)->append(p1);
+
+		const QPointF r1(elapsed, 50*Data[2]);
+		SignalData::instance(roll, MPR)->append(r1);
 	}
 }
 

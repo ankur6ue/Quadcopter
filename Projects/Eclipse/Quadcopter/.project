@@ -27,6 +27,16 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>AccelSampler.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AccelSampler.cpp</locationURI>
+		</link>
+		<link>
+			<name>AccelSampler.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AccelSampler.h</locationURI>
+		</link>
+		<link>
 			<name>AttitudePIDCtrl.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AttitudePIDCtrl.cpp</locationURI>
@@ -120,6 +130,21 @@
 			<name>MPU6050.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Tools/MPU6050/MPU6050.cpp</locationURI>
+		</link>
+		<link>
+			<name>MatrixOps.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/MatrixOps.cpp</locationURI>
+		</link>
+		<link>
+			<name>MatrixOps.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/MatrixOps.h</locationURI>
+		</link>
+		<link>
+			<name>Orientation.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/Orientation.cpp</locationURI>
 		</link>
 		<link>
 			<name>PIDControl.cpp</name>

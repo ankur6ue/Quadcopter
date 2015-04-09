@@ -17,6 +17,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "plot.h"
 #include "knob.h"
 #include "wheelbox.h"
+#include "QSlider.h"
 #include <qwt_scale_engine.h>
 #include <qlabel.h>
 #include <qlayout.h>
@@ -28,7 +29,11 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "commanddef.h"
 #include "echocommanddef.h"
 #include "joystick.h"
+#include "samplingthread.h"
 #include "PIDTypeMenu.h"
+#include <QFileSystemModel>
+#include <QListView>
+#include <MySortFilterProxyModel.h>
 
 void MainWindow::CreatePlots()
 {
@@ -72,8 +77,73 @@ void MainWindow::CreatePlotControls()
 	//	pIntervalWheel->setFixedSize(200, 100);
 	pIntervalWheel->setValue( intervalLength );
 
-	pTimerWheel = new WheelBox( "Sample Interval [ms]", 0.0, 50.0, 1, this );
-	pTimerWheel->setValue( 20.0 );
+	pTimerWheel = new WheelBox( "Sample Interval [ms]", 0.0, 80.0, 1, this );
+	pTimerWheel->setValue( 40.0 );
+}
+
+void MainWindow::CreateFlightLogControls()
+{
+	pRecordingToggle = new QPushButton("Record", this);
+	pPlayToggle = new QPushButton("Play", this);
+	pPlayToggle->setEnabled(false);
+	pRecordingToggle->setStyleSheet("qproperty-icon: url(record.jpg);");
+	pfileModel = new QFileSystemModel(this);
+	pfileModel->setRootPath("C:\\Embedded\\Logs\\");
+	pLogFilelist = new QListView(this);
+	MySortFilterProxyModel *proxyModel = new MySortFilterProxyModel(this);
+//	proxyModel->setSortRole(Qt::DateFormat);
+	proxyModel->setSourceModel(pfileModel);
+	pLogFilelist->setModel(proxyModel);
+	pLogFilelist->setRootIndex(proxyModel->mapFromSource(pfileModel->index("C:\\Embedded\\Logs\\")));
+	pLogFilelist->setMaximumHeight(100);
+	pLogFilelist->show();
+	proxyModel->invalidate();
+	proxyModel->setSortRole(Qt::UserRole);
+	proxyModel->sort(0);
+	connect(pLogFilelist, SIGNAL(clicked(QModelIndex)), this, SLOT(onLogFileSelected(const QModelIndex&)));
+	connect(pPlayToggle, SIGNAL(clicked()), this, SLOT(onPlayToggled()));
+	bRecordToggle = false;
+}
+
+void MainWindow::SetPlotState(bool bIsPlaying)
+{
+	if (bIsPlaying)
+	{
+		r_plot->bUpdate = true;
+		y_plot->bUpdate = true;
+		p_plot->bUpdate = true;
+	}
+	else
+	{
+		r_plot->bUpdate = false;
+		y_plot->bUpdate = false;
+		p_plot->bUpdate = false;
+	}
+}
+
+void MainWindow::onPlayToggled()
+{
+	bIsPlaying = !bIsPlaying;
+	SetPlotState(bIsPlaying);
+}
+
+// Disable play button once log playback is over.
+void MainWindow::onLogPlaybackOver()
+{
+	pPlayToggle->setEnabled(false);
+}
+
+void MainWindow::onLogFileSelected(const QModelIndex& index)
+{
+	QString fileName = pfileModel->fileName(index);
+	// Activate play/stop button
+	pPlayToggle->setEnabled(true);
+	bIsPlaying = true;
+	SetPlotState(bIsPlaying);
+	pPlayToggle->setText("Stop");
+	// OnLogFileSelected is not a slot in SamplingThread otherwise FileModel will need to also be declared in SamplingThread, potentially creating
+	// threading issues. Haven't thought through this in detail though
+	emit(logFileSelected(fileName));
 }
 
 void MainWindow::CreateAngle2RateControls()
@@ -169,6 +239,15 @@ void MainWindow::CreateQuadStatePanel()
 
 }
 
+void MainWindow::CreateDCMControlPanel()
+{
+	pAlphaSlider = new QSlider(this);
+	pAlphaSlider->setRange(0, 10);
+	pAlphaSlider->setSingleStep(1);
+	pAlphaSlider->setTickInterval(1);
+	pAlphaSlider->setOrientation(Qt::Horizontal);
+}
+
 void MainWindow::CreateQuadControlPanel()
 {
 	QPalette* palette2 = new QPalette();
@@ -192,7 +271,7 @@ void MainWindow::CreateQuadControlPanel()
 	pMotorToggle = new QPushButton("Off", this);
 	pMotorToggle->setCheckable(true);
 	pMotorToggle->setPalette(*palette2);
-	pMotorToggle->setFixedSize(100, 50);
+//	pMotorToggle->setFixedSize(100, 50);
 	pMotorToggle->setContentsMargins(0,0,0,0);
 
 	bMotorToggle = false;
@@ -271,7 +350,7 @@ void MainWindow::ManageLayout()
 
 	vLayout2d->setSpacing(0);
 	vLayout2d->setMargin(0);
-	vLayout2d->setContentsMargins(0,0,0,50);
+//	vLayout2d->setContentsMargins(0,0,0,50);
 
 	// Create labels here as they are not class member variables
 	QLabel* pPIDTypeLabel = new QLabel("PIDType", this);
@@ -288,6 +367,8 @@ void MainWindow::ManageLayout()
 	QLabel* pQuadKdLabel = new QLabel("Kd", this);
 
 	QLabel* pQuadA2RLabel = new QLabel("A2R", this);
+
+	QLabel* pDCMAlphaLabel = new QLabel("Alpha (*10)", this);
 
 	vLayout2d->addWidget( pQuadSpeedLabel, 0, 0, 1, 2, Qt::AlignLeft);
 	vLayout2d->addWidget( pQuadSpeed, 0, 2, 1, 2, Qt::AlignLeft);
@@ -324,6 +405,7 @@ void MainWindow::ManageLayout()
 	vLayout2d->addWidget( pExceptionTypeLabel, 8, 0, 1, 2, Qt::AlignLeft);
 	vLayout2d->addWidget( pExceptionType, 8, 2, 1, 2, Qt::AlignLeft);
 
+	// VBox3
 	QGroupBox* gpBox3a = new QGroupBox("Roll/Pitch Displacements", this);
 	QGridLayout* vLayout3a = new QGridLayout();
 	gpBox3a->setLayout(vLayout3a);
@@ -336,16 +418,25 @@ void MainWindow::ManageLayout()
 	QGridLayout* vLayout3c = new QGridLayout();
 	gpBox3c->setLayout(vLayout3c);
 
+	QGroupBox* gpBox3d = new QGroupBox("Flight Data Recording", this);
+	QGridLayout* vLayout3d = new QGridLayout();
+	gpBox3d->setLayout(vLayout3d);
+
+	QGroupBox* gpBox3e = new QGroupBox("DCM Parameters", this);
+	QGridLayout* vLayout3e = new QGridLayout();
+	gpBox3e->setLayout(vLayout3e);
+
 	vLayout3->addWidget(gpBox3a);
 	vLayout3->addWidget(gpBox3b);
+	vLayout3->addWidget(gpBox3e);
 	vLayout3->addWidget(gpBox3c);
-
+	vLayout3->addWidget(gpBox3d);
 	vLayout3a->addWidget( pRollCtrlWheel, 0, 0, 1, 1, Qt::AlignLeft);
-	vLayout3a->addWidget( pPitchCtrlWheel, 1, 0, 1, 1, Qt::AlignLeft);
-	vLayout3a->addWidget( pYawCtrlWheel, 2, 0, 1, 1, Qt::AlignLeft);
+	vLayout3a->addWidget( pPitchCtrlWheel, 0, 1, 1, 1, Qt::AlignLeft);
+	vLayout3a->addWidget( pYawCtrlWheel, 0, 2, 1, 1, Qt::AlignLeft);
 
 	vLayout3b->addWidget( pRollHoverAngleWheel, 0, 0, 1, 1, Qt::AlignLeft);
-	vLayout3b->addWidget( pPitchHoverAngleWheel, 1, 0, 1, 1, Qt::AlignLeft);
+	vLayout3b->addWidget( pPitchHoverAngleWheel, 0, 1, 1, 1, Qt::AlignLeft);
 
 	vLayout3c->addWidget (pFR, 2, 0, 1, 1, Qt::AlignHCenter);
 	vLayout3c->addWidget (pFL, 2, 1, 1, 1, Qt::AlignHCenter);
@@ -354,6 +445,15 @@ void MainWindow::ManageLayout()
 	vLayout3c->addWidget( pSpeedWheel, 0, 0, 1, 2, Qt::AlignHCenter);
 	vLayout3c->addWidget (pMotorToggle, 1, 0, 1, 2, Qt::AlignHCenter);
 
+	vLayout3d->setSpacing(0);
+	vLayout3d->setMargin(0);
+	vLayout3d->addWidget(pRecordingToggle, 0, 0, 1, 1, Qt::AlignHCenter);
+	vLayout3d->addWidget(pPlayToggle, 0, 1, 1, 1, Qt::AlignHCenter);
+	vLayout3d->addWidget(pLogFilelist, 1, 0, 1, 2, Qt::AlignHCenter);
+
+	vLayout3e->addWidget(pDCMAlphaLabel, 0, 0, 1, 1, Qt::AlignHCenter);
+	vLayout3e->addWidget(pAlphaSlider, 0, 1, 1, 1, Qt::AlignHCenter);
+	// TODO: the wdith of the button should be a percentage of the container
 	layout->update();
 }
 

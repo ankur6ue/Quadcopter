@@ -110,7 +110,7 @@ void PrintHelper::Serialize(const char* prefix, const char* name, float val)
 void PrintHelper::Print(char* str)
 {
 	SERIAL.print(str);
-	SERIAL.flush();
+//	SERIAL.flush();
 }
 
 void PrintHelper::AttachSentinal()
@@ -149,21 +149,22 @@ void QuadStateLogger::SendQuadState()
 unsigned long PIDStateLogger::Run()
 {
 	unsigned long before = millis();
-	float angles[3] =
-	{ QuadState.Yaw, QuadState.Pitch, QuadState.Roll };
-	Log.AddtoLog("ypr", angles, 3);
-	float pidParams[3] =
-	{ QuadState.PID_Yaw, QuadState.PID_Pitch, QuadState.PID_Roll };
-	Log.AddtoLog("PID", pidParams, 3);
+	float angles[4] =
+	{ (float)before, QuadState.Yaw, QuadState.Pitch, QuadState.Roll };
+	Log.AddtoLog("ypr", angles, 4);
+	float pidParams[4] =
+	{ (float)before, QuadState.PID_Yaw, QuadState.PID_Pitch, QuadState.PID_Roll };
+	Log.AddtoLog("PID", pidParams, 4);
 	SERIAL.print(Log.LogBuf);
-	SERIAL.flush();
+	// Avoid Flush. It appears to be quite expensive
+//	SERIAL.flush();
 	PrintHelper::AttachSentinal();
-	float motionParams[6] = {QuadState.Yaw2, QuadState.Pitch2, QuadState.Roll2, QuadState.YawAccel,
-			QuadState.PitchAccel, QuadState.RollAccel };
+	float motionParams[7] = {(float)before, /*QuadState.YawOmega, QuadState.PitchOmega,
+	QuadState.RollOmega, */QuadState.YawAccel, QuadState.PitchAccel, QuadState.RollAccel };
 	Log.Reset();
-	Log.AddtoLog("mpr", motionParams, 6);
+	Log.AddtoLog("mpr", motionParams, 4);
 	SERIAL.print(Log.LogBuf);
-	SERIAL.flush();
+//	SERIAL.flush();
 	PrintHelper::AttachSentinal();
 	Log.Reset();
 

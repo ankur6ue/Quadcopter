@@ -25,6 +25,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "SoftwareSerial.h"
 #include "Orientation.h"
 #include "SerialDef.h"
+#include "AccelSampler.h"
 
 /* The Logger class sends the chracters accumulated in the Log to the serial port every 100 (configurable) ms.
  * This appears to be safe as the packetization timeout (RO) of the Xbee radio that I'm using for radio communication
@@ -37,16 +38,22 @@ otherwise accompanies this software in either electronic or hard copy form.
 /*
  * cQuadStateLogger sends Quadstate every 1000ms
  */
+#define ESTIMATE_ACCEL_NOISE
 
 Scheduler 			cScheduler;
 QuadStateLogger 	cQuadStateLogger(1, "QuadStateLogger");
+#ifdef ESTIMATE_ACCEL_NOISE
 PIDStateLogger		cPIDStateLogger(10, "PIDStateLogger");
+#else
+PIDStateLogger		cPIDStateLogger(15, "PIDStateLogger");
+#endif
 ExceptionLogger		cExceptionLogger(1, "ExceptionLogger");
 CommandCtrl			cCommandCtrl(100, "CommandCtrl");
-MotorCtrl			cMotorCtrl(200, "MotorCtrl");
+MotorCtrl			cMotorCtrl(100, "MotorCtrl");
 BeaconListener		cBeaconListener(1, "BeaconListener");
 CalcOrientation		cCalcOrientation(200, "Calculate Orientation");
 PIDController 		cPIDCntrl(100, "PIDController");
+AccelSampler 		cAccelSampler(500, "AccelSampler");
 ExceptionMgr		cExceptionMgr;
 
 int 				StartupTime;
@@ -66,14 +73,15 @@ int					MaxPIDOutput = 350;
 // To prevent damage to the motor, the motor input is capped
 int					MaxMotorInput = 1450;
 // Speed at which life off occurs. Depends on the weight of the quad, type of motors etc.
-int					LiftOffSpeed = 850;
+int					LiftOffSpeed = 1100;
 
 IMU Imu;
 
 void InitQuadState()
 {
-	QuadState.Speed = 030;
-	QuadState.bMotorToggle = false;
+	QuadState.Speed 		= 030;
+	QuadState.bMotorToggle 	= false;
+	QuadState.Alpha 		= 1;
 }
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 
@@ -105,6 +113,7 @@ void setup()
     cScheduler.RegisterTask(&cExceptionLogger);
     cScheduler.RegisterTask(&cCalcOrientation);
     cScheduler.RegisterTask(&cPIDCntrl);
+    cScheduler.RegisterTask(&cAccelSampler);
     /// Motors must be initialized first, otherwise the ESC will see inconsistent voltage on the PWM pin. They should
     /// see the ESCLow setting set during ESC calibration.
     cMotorCtrl.InitMotors();

@@ -121,7 +121,8 @@ Plot::Plot( QWidget *parent, PlotId pid ):
     QwtPlot( parent ),
     pinterval( 0.0, 10.0 ),
     ptimerId( -1 ),
-	ePlotId (pid)
+	ePlotId (pid),
+	bUpdate(true)
 {
     setAutoReplot( false );
     setCanvas( new Canvas() );
@@ -294,6 +295,8 @@ void Plot::incrementInterval()
 
 void Plot::timerEvent( QTimerEvent *event )
 {
+	if (!bUpdate) return; 
+
     if ( event->timerId() == ptimerId )
     {
         updateCurve();
@@ -301,8 +304,6 @@ void Plot::timerEvent( QTimerEvent *event )
         const double elapsed = pclock.elapsed() / 1000.0;
         if ( elapsed > pinterval.maxValue() )
             incrementInterval();
-
-        return;
     }
 
     QwtPlot::timerEvent( event );

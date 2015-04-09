@@ -71,9 +71,9 @@ bool Scheduler::GetPerformance(char* buffer, unsigned long bufSize)
 		taskTime		= Tasks[i]->GetAggregateTaskTime();
 		Tasks[i]->ResetAggregateTaskTime();
 		Tasks[i]->ResetRunCount();
-		int taskFrequency = (int)(numTaskRuns*1000/AggregateTickTime); // In Hz
+		unsigned long taskFrequency = (unsigned long)(numTaskRuns*1000/taskTime); // In Hz
 		memset(tmp, 0, 100);
-		sprintf(tmp, "%s %d\n", Tasks[i]->GetTaskName(), taskFrequency);
+		sprintf(tmp, "%s %lu\n", Tasks[i]->GetTaskName(), taskFrequency);
 		strSize = strlen(tmp);
 		// ensure we have space left in the buffer
 		if (bufSize - insertPos < strSize) return false;

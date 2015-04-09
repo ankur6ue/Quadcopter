@@ -97,6 +97,8 @@ void BLMotor::Init()
 
 void BLMotor::Reset()
 {
+
+	Motor.write(700);
 	Motor.write(ESCSettings.Low);
 //	delay(500);
 }

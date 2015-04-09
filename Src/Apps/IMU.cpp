@@ -20,8 +20,10 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "SerialDef.h"
 #include "ErrorsDef.h"
 #include "MatrixOps.h"
+#include "AccelSampler.h"
 
 extern ExceptionMgr cExceptionMgr;
+extern AccelSampler cAccelSampler;
 extern volatile bool MPUInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
 void DMPDataReady()
@@ -44,9 +46,9 @@ void PrintMotion6Data(int ax, int ay, int az, int gx, int gy, int gz)
 	SERIAL.print("\n");
 }
 
-void IMU::CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
-		double& gYOffset, double& gZOffset, double& aXOffset, double& aYOffset,
-		double& aZOffset)
+void IMU::CalculateOffsets(uint8_t gyroSamplingRate, int& gXOffset,
+		int& gYOffset, int& gZOffset, int& aXOffset, int& aYOffset,
+		int& aZOffset)
 {
 	// longs are 32bit integers on Arduino mega, so good for storing sums
 	long base_x_gyro = 0;
@@ -78,6 +80,8 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
 	before = millis();
 	// Now collect data for offset calculation
 	numSamples = 0;
+	accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+	int yawBefore = gz;
 	do
 	{
 		accelgyro->getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -91,15 +95,22 @@ void IMU::CalculateOffsets(uint8_t gyroSamplingRate, double& gXOffset,
 		numSamples++;
 		delay(timeInterval);
 	}
-	while(numSamples < 400); // collect average over 400 frames of data
+	while(numSamples < 1200); // collect average over 400 frames of data
+	int yawNow = gz;
+	now = millis();
+	SERIAL.print("yawBefore = ");
+	SERIAL.println(yawBefore);
+	SERIAL.print("yawNow = ");
+	SERIAL.println(yawNow);
+	gXOffset = (int)base_x_gyro/numSamples;
+	gYOffset = (int)base_y_gyro/numSamples;
+	gZOffset = (int)base_z_gyro/numSamples;
+	aXOffset = (int)base_x_accel/numSamples;
+	aYOffset = (int)base_y_accel/numSamples;
+	aZOffset = (int)base_z_accel/numSamples;
 
-
-	gXOffset = base_x_gyro/numSamples;
-	gYOffset = base_y_gyro/numSamples;
-	gZOffset = base_z_gyro/numSamples;
-	aXOffset = base_x_accel/numSamples;
-	aYOffset = base_y_accel/numSamples;
-	aZOffset = base_z_accel/numSamples;
+	// Calculate yaw drift estimate
+	YawDrift = (int)(yawNow - yawBefore)*1000/(now - before);
 }
 
 void IMU::Init()
@@ -126,7 +137,7 @@ void IMU::Init()
 	delay(1);
 	accelgyro->setFullScaleAccelRange(MPU6050_ACCEL_FS_2); //+-2g
 	delay(1);
-	accelgyro->setDLPFMode(3);  //Set Low Pass filter
+	accelgyro->setDLPFMode(4);  //Set Low Pass filter
 	delay(1);
 	accelgyro->setRate(1); // Corresponds to a sampling rate of 500 hz
 	uint8_t dlpfMode = accelgyro->getDLPFMode();
@@ -153,6 +164,8 @@ void IMU::Init()
 	SERIAL.println(GYRO_FACTOR);
 	SERIAL.print("ACCEL_FACTOR = ");
 	SERIAL.println(ACCEL_FACTOR);
+	SERIAL.print("YawDrift = ");
+	SERIAL.println(YawDrift);
 	// Calculating the offsets is very important. Without doing so, gyro/accel measurements will
 	// experience significant drift.
 	CalculateOffsets(gyroSampleRate, gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset);
@@ -209,21 +222,23 @@ void IMU::Init()
 	j=0;
 	*/
 }
-
+static unsigned long tmp = 0;
 bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
 		float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2)
 {
+	unsigned long now = millis();
+	float dt = (now - Before) / 1000.0;
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ); //Set Starting angles
-
 	// Remove offsets and scale gyro data
 	fgyroX = (gyroX - gXOffset) / GYRO_FACTOR;
 	fgyroY = (gyroY - gYOffset) / GYRO_FACTOR;
 	fgyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
 
+	cAccelSampler.GetAccelAvg(faccX, faccY, faccZ);
 	// Remove offsets and scale accelerometer data
-	faccX = (accX /*- aXOffset*/) / ACCEL_FACTOR;
-	faccY = (accY /*- aYOffset)*/) / ACCEL_FACTOR;
-	faccZ = (accZ) / ACCEL_FACTOR;
+	//faccX = (accX /*- aXOffset*/) / ACCEL_FACTOR;
+	//faccY = (accY /*- aYOffset)*/) / ACCEL_FACTOR;
+	//faccZ = (accZ) / ACCEL_FACTOR;
 
 	// Note that we must use scaled angular velocities and accelerations for PID loop
 	// After the scale adjustment is applied, the resulting values are in physical units (degrees/sec etc)
@@ -238,52 +253,62 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	yaw_accel		= faccZ;
 
 	// Angle of rotation about Y axis computed from the acceleration vector
-	float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RADIANS_TO_DEGREES;
+//	float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RADIANS_TO_DEGREES;
 	// Angle of rotation about X Axis computer from the acceleration vector
-	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES;
+//	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES;
 	// Acceleration doesn't give info about rotation around Z
-	float accelAngleZ = 0;
-	unsigned long now = millis();
-	// Compute the (filtered) gyro angles
-	float dt = (now - Before) / 1000.0;
-	float gyroAngleX = fgyroX * dt + fLastGyroAngleX;
-	float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
-	float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
+//	float accelAngleZ = 0;
 
-	UpdateMatrix(fgyroX, fgyroY, fgyroZ, dt);
-	Rot.ToEuler(yaw2, pitch2, roll2);
+//	float gyroAngleX = fgyroX * dt + fLastGyroAngleX;
+//	float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
+//	float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
+	UpdateMatrix(fgyroX, fgyroY, fgyroZ, faccX, faccY, faccZ, dt);
+	Rot.ToEuler(yaw, pitch, roll);
+	// Convert to degree
+	yaw = yaw*RADIANS_TO_DEGREES;
+	pitch = pitch*RADIANS_TO_DEGREES;
+	roll = roll*RADIANS_TO_DEGREES;
 	// Apply the complementary filter to figure out the change in angle - choice of alpha is
 	// estimated now.  Alpha depends on the sampling rate...
 	const float alpha = 0.95;
-	float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
-	float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
-	float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
+//	float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
+//	float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
+//	float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
 
-	Matrix3D m;
-	m.FromEuler(angleZ, angleY, angleX);
-	VectorF r3 = m.GetRow(3);
-//	VectorF r3_accel_diff = r3 -
-	fLastGyroAngleX = angleX;
-	fLastGyroAngleY = angleY;
-	fLastGyroAngleZ = angleZ;
-	pitch 			= fLastGyroAngleY;
-	roll 			= fLastGyroAngleX;
-	yaw 			= fLastGyroAngleZ;
+//	fLastGyroAngleX = angleX;
+//	fLastGyroAngleY = angleY;
+//	fLastGyroAngleZ = angleZ;
+//	pitch2 			= fLastGyroAngleY;
+//	roll2 			= fLastGyroAngleX;
+//	yaw2 			= fLastGyroAngleZ;
 	Before = now;
 	return true;
 }
 
-void IMU::UpdateMatrix(float fgyroX, float fgyroY, float fgryoZ, float dt)
+void IMU::UpdateMatrix(float fgyroX, float fgyroY, float fgyroZ, float faccX,
+		float faccY, float faccZ, float dt)
 {
+	// Apply Roll Pitch Correction using Accelerometer data
+	float Kp = -QuadState.Alpha;
+	float Ki = 0;
+	VectorF _r3 = Rot.GetRow(3);
+	VectorF Acc(faccX, faccY, faccZ);
+	VectorF RPCorrection = _r3.Cross(Acc);
+	VectorF RPCorrection_K = RPCorrection.Dot(Kp);
+//	RPCorrection_I = RPCorrection_I + RPCorrection.Dot(dt*Ki);
+	VectorF gyroCorrected = VectorF(fgyroX*DEGREES_TO_RADIANS, fgyroY*DEGREES_TO_RADIANS, fgyroZ*DEGREES_TO_RADIANS)
+			+ RPCorrection_K /*+ RPCorrection_I*/;
 	// Omega Correction
-	VectorF r1(1, -fgyroZ*dt, fgyroY*dt);
-	VectorF r2(fgryoZ*dt, 1, -fgyroX*dt);
-	VectorF r3(-fgyroY*dt, fgyroX*dt, 1);
+	// Gyro reports results in degrees per second.
+	VectorF r1(1, -gyroCorrected.z*dt, gyroCorrected.y*dt);
+	VectorF r2(gyroCorrected.z*dt, 1, -gyroCorrected.x*dt);
+	VectorF r3(-gyroCorrected.y*dt, gyroCorrected.x*dt, 1);
 	Matrix3D omega_c(r1, r2, r3);
-	omega_c.Scale(DEGREES_TO_RADIANS); // Gyro reports results in degrees per second.
+
 	Rot = Rot.Multiply(omega_c);
 	// Renormalize Rot
 	Rot.Renormalize();
+
 }
 
 void IMU::Reset()
@@ -292,7 +317,7 @@ void IMU::Reset()
 	fLastGyroAngleZ = 0;
 	fLastGyroAngleX = 0;
 	fLastGyroAngleY = 0;
-
+	RPCorrection_I.SetZero();
 	// Reset Rot
 	Rot.Reset();
 	Before = millis();
@@ -338,6 +363,15 @@ bool IMU::GetMotion6(float angles[])
 	return true;
 }
 
+bool IMU::GetAccel(float& faccX, float& faccY, float& faccZ)
+{
+	int16_t accX, accY, accZ;
+	accelgyro->getAcceleration(&accX, &accY, &accZ);
+	faccX = accX/ACCEL_FACTOR;
+	faccY = accY/ACCEL_FACTOR;
+	faccZ = accZ/ACCEL_FACTOR;
+	return true;
+}
 bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 {
 
