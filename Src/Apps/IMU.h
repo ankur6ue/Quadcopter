@@ -69,9 +69,10 @@ class IMU
 			int& aZOffset);
   void 	Reset();
   bool 	GetMotion6(float angles[]);
+  float GetVelocityDelta();
   bool 	GetAccel(float& faccX, float& faccY, float& faccZ);
   bool 	IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
-		  float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2);
+		  float& yaw_accel, float& pitch_accel, float& roll_accel);
   bool 	GetYPR(float& yaw, float& pitch, float& roll);
   float GetGyroFactor() { return GYRO_FACTOR; };
   float GetAccelFactor() { return ACCEL_FACTOR; };
@@ -80,8 +81,10 @@ class IMU
 
   int 	gXOffset, gYOffset, gZOffset, aXOffset, aYOffset, aZOffset;
   float fLastGyroAngleX, fLastGyroAngleY, fLastGyroAngleZ;
+  float	fVx, fVy, fVz;
   float GYRO_FACTOR;
   float ACCEL_FACTOR;
+  float ACCEL_GRAVITY;
   float RADIANS_TO_DEGREES;
   float DEGREES_TO_RADIANS;
   private:

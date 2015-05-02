@@ -98,10 +98,10 @@ void PIDController::SetSpeed(int speed)
 	pidCtrlImpl[pidIndex]->SetSpeed(speed);
 }
   
-void PIDController::SetTunings(double kp, double ki, double kd, Axis _eAxis)
+void PIDController::SetTunings(PIDParams& params, Axis _eAxis)
 {
 	int pidIndex = QuadState.ePIDType;
-	pidCtrlImpl[pidIndex]->SetTunings(kp, ki, kd, _eAxis);
+	pidCtrlImpl[pidIndex]->SetTunings(params, _eAxis);
 }
 
 void PIDController::SetA2RTunings(double A2R_kp, Axis _eAxis)

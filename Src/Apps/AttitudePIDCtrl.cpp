@@ -40,11 +40,11 @@ void AttitudePIDCtrl::SetSpeed(int speed)
 	QuadSpeed = speed;
 }
 
-void AttitudePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
+void AttitudePIDCtrl::SetTunings(PIDParams& params, Axis eAxis)
 {
-	PIDCtrlData[eAxis].Kp = kp;
-	PIDCtrlData[eAxis].Ki = ki/1000;
-	PIDCtrlData[eAxis].Kd = kd*1000;
+	PIDCtrlData[eAxis].Kp = params.Kp;
+	PIDCtrlData[eAxis].Ki = params.Ki/1000;
+	PIDCtrlData[eAxis].Kd = params.Kd*1000;
 
 }
 

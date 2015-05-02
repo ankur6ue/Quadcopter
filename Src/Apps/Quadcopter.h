@@ -32,17 +32,24 @@ enum Axis
 	Axis_Roll
 };
 
+typedef struct PIDParams
+{
+	float Kp;
+	float Ki;
+	float Kd;
+};
+
 struct QuadStateDef
 {
 	QuadStateDef()
 	{
-		bIsPIDSetup = false;
-		bIsKpSet 	= false;
-		bIsKiSet 	= false;
-		bIsKdSet 	= false;
-		bIsYawKpSet = false;
-		bIsYawKiSet = false;
-		bIsYawKdSet = false;
+		bIsPIDSetup 	= false;
+		bIsKpSet 		= false;
+		bIsKiSet 		= false;
+		bIsKdSet 		= false;
+		bIsYawKpSet 	= false;
+		bIsYawKiSet 	= false;
+		bIsYawKdSet 	= false;
 		bIsPIDTypeSet 	= false;
 		bIsA2R_PKpSet	= false;
 		bIsA2R_RKpSet	= false;
@@ -50,22 +57,25 @@ struct QuadStateDef
 		ePIDType		= AttitudePIDControl;
 	}
 	float 	Yaw, Pitch, Roll;
-	float 	Yaw2, Pitch2, Roll2;
 	float 	YawOmega; 	// Angular velocity along Yaw axis
 	float	PitchOmega;
 	float	RollOmega;
 	float	YawAccel;	// Acceleration along Yaw
 	float 	PitchAccel;
 	float 	RollAccel;
-	float 	Kp;
-	float 	Ki;
-	float 	Kd;
-	float 	Yaw_Kp;
-	float 	Yaw_Ki;
-	float 	Yaw_Kd;
+	float	CurrentAltitude; // in cms
+	float	HoverAltitude;
+	float	Vz; // Velocity along x/y/z axes
+	float	Vx;
+	float	Vy;
+	float	Vz_Sonar; // Velocity calculated by Sonar
+	PIDParams PitchParams;
+	PIDParams YawParams;
+	PIDParams AltParams;
 	float 	PID_Yaw; // Denotes output of the PID Controller
 	float 	PID_Roll;
 	float 	PID_Pitch;
+	int		PID_Alt;
 	float 	A2R_PKp; // Used to convert angle to angular velocity
 	float	A2R_RKp;
 	float	A2R_YKp;
@@ -76,6 +86,7 @@ struct QuadStateDef
 	PIDType	ePIDType;
 
 	bool	bIsPIDSetup;
+	bool	bThrottleOverride; // This flag is used to override altitude control if the pilot sets the speed directly
 	bool	bIsKpSet;
 	bool	bIsKiSet;
 	bool	bIsKdSet;
@@ -100,6 +111,7 @@ struct QuadStateDef
 		bIsA2R_PKpSet	= false;
 		bIsA2R_RKpSet	= false;
 		bIsA2R_YKpSet	= false;
+		bThrottleOverride=true;
 	};
 	bool IsPIDControlReady()
 	{
@@ -136,4 +148,6 @@ extern int				MaxPIDOutput;
 extern int				MaxMotorInput;
 // Speed at which life off occurs. Depends on the weight of the quad, type of motors etc.
 extern int				LiftOffSpeed;
+
+extern int				BaseSpeed;
 #endif

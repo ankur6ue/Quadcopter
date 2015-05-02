@@ -25,8 +25,7 @@ int main( int argc, char **argv )
     app.setPalette( Qt::darkGray );
 
     MainWindow window;
-    window.resize( 900, 200 );
-
+   
     SamplingThread samplingThread;
     samplingThread.setAmplitude( window.amplitude() );
     samplingThread.setInterval( window.signalInterval() );

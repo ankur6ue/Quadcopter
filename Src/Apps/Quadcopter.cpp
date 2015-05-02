@@ -26,7 +26,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "Orientation.h"
 #include "SerialDef.h"
 #include "AccelSampler.h"
-
+#include "AltitudeCtrl.h"
 /* The Logger class sends the chracters accumulated in the Log to the serial port every 100 (configurable) ms.
  * This appears to be safe as the packetization timeout (RO) of the Xbee radio that I'm using for radio communication
  * is defined as 3*character time. At a baudrate of 115200, with 10 bits (including start/stop bit) needed for transfering
@@ -38,15 +38,11 @@ otherwise accompanies this software in either electronic or hard copy form.
 /*
  * cQuadStateLogger sends Quadstate every 1000ms
  */
-#define ESTIMATE_ACCEL_NOISE
 
 Scheduler 			cScheduler;
 QuadStateLogger 	cQuadStateLogger(1, "QuadStateLogger");
-#ifdef ESTIMATE_ACCEL_NOISE
-PIDStateLogger		cPIDStateLogger(10, "PIDStateLogger");
-#else
 PIDStateLogger		cPIDStateLogger(15, "PIDStateLogger");
-#endif
+AltitudeCtrl		cAltitudeCtrl(50, "AltitudeControl");
 ExceptionLogger		cExceptionLogger(1, "ExceptionLogger");
 CommandCtrl			cCommandCtrl(100, "CommandCtrl");
 MotorCtrl			cMotorCtrl(100, "MotorCtrl");
@@ -66,22 +62,27 @@ int 				MPUInterruptCounter = 0;
 
 // Thresholds
 // Thresholds
-// Controls how far the I term for the rate controller is allowed to go
+// Controls how far the I term for the orientation rate controller is allowed to go
 int					RateWindUp = 150;
+
+// Controls how far the I term for the altitude PId controller is allowed to go
+int					AltWindUp = 500;
+
 // The PID output is not allowed to exceed this threshold
-int					MaxPIDOutput = 350;
+int					MaxPIDOutput = 450;
 // To prevent damage to the motor, the motor input is capped
-int					MaxMotorInput = 1450;
+int					MaxMotorInput = 1500;
 // Speed at which life off occurs. Depends on the weight of the quad, type of motors etc.
 int					LiftOffSpeed = 1100;
 
+int					BaseSpeed = 800;
 IMU Imu;
 
 void InitQuadState()
 {
 	QuadState.Speed 		= 030;
 	QuadState.bMotorToggle 	= false;
-	QuadState.Alpha 		= 1;
+	QuadState.Alpha 		= 0.7;
 }
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 
@@ -102,7 +103,7 @@ void setup()
     InitQuadState();
     // initialize SERIAL communication
     SERIAL.begin(115200);
-//    SSerial.begin(115200); // need this baudrate otherwise FIFO overflow will occur. WE are not sending data fast enough
+
     SERIAL.print("In Setup");
     cPIDCntrl.CreateControllers();
     cScheduler.SetPerfReportFrequency(10000); // Report performance every 10 seconds
@@ -114,10 +115,13 @@ void setup()
     cScheduler.RegisterTask(&cCalcOrientation);
     cScheduler.RegisterTask(&cPIDCntrl);
     cScheduler.RegisterTask(&cAccelSampler);
+    cScheduler.RegisterTask(&cAltitudeCtrl);
+
     /// Motors must be initialized first, otherwise the ESC will see inconsistent voltage on the PWM pin. They should
     /// see the ESCLow setting set during ESC calibration.
     cMotorCtrl.InitMotors();
     cBeaconListener.Stop(); // Only listen for beacon when the motors are on
+
     // Clear all exceptions
 
     cExceptionMgr.ClearExceptionFlag();

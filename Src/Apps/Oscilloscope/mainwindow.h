@@ -15,14 +15,16 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include <qwidget.h>
 #include "PIDTypeMenu.h"
 
-#define PITCH_CTRL_RANGE	45
-#define ROLL_CTRL_RANGE		45
+#define PITCH_CTRL_RANGE	10
+#define ROLL_CTRL_RANGE		10
 #define YAW_CTRL_RANGE		45
+#define DEADZONE			70
 
 class Plot;
 class Knob;
 class WheelBox;
 class QLineEdit;
+class QToolButton;
 class QSlider;
 class QPushButton;
 class QCheckBox;
@@ -71,6 +73,13 @@ struct CommonPIDControls // Stores PID Widgets that are common to both Rate/Atti
 	WheelBox	*pYawKd;
 };
 
+struct AltitudePIDControls
+{
+	WheelBox	*pAltKp;
+	WheelBox	*pAltKi;
+	WheelBox	*pAltKd;
+};
+
 struct AttitudePIDControls
 {
 	AttitudePIDControls():ePIDType(AttitudePIDControl){};
@@ -109,16 +118,16 @@ public:
 	
 	typedef struct AttitudePIDParams
 	{
-		PIDParamsDef PitchPIDParams;
-		PIDParamsDef RollPIDParams;
-		PIDParamsDef YawPIDParams;
+		PIDParamsDef	PitchPIDParams;
+		PIDParamsDef	RollPIDParams;
+		PIDParamsDef	YawPIDParams;
 	};
 
 	typedef struct RatePIDParams
 	{
-		PIDParamsDef PitchPIDParams;
-		PIDParamsDef RollPIDParams;
-		PIDParamsDef YawPIDParams;
+		PIDParamsDef	PitchPIDParams;
+		PIDParamsDef	RollPIDParams;
+		PIDParamsDef	YawPIDParams;
 	};
 
     void	start();
@@ -139,6 +148,7 @@ public:
 	void CreateAttitudePIDControls();
 	void CreateRatePIDControls();
 	void CreateCommonPIDControls();
+	void CreateAltitudePIDControls();
 	void SetPIDParams();
 	void CreateQuadStatePanel();
 	void CreateQuadControlPanel();
@@ -158,6 +168,7 @@ public Q_SLOTS:
 	void DCMAlphaSliderMoved(int);
 	void textChanged(const QString &);
 	void speedChanged(double);
+	void HoverAltitudeChanged(double);
 	void PitchHoverAngleChanged(double);
 	void RollHoverAngleChanged(double);
 	void PitchCtrlChanged(double);
@@ -169,6 +180,9 @@ public Q_SLOTS:
 	void PitchKpChanged(double);
 	void PitchKiChanged(double);
 	void PitchKdChanged(double);
+	void AltitudeKpChanged(double);
+	void AltitudeKiChanged(double);
+	void AltitudeKdChanged(double);
 	void YawKpChanged(double);
 	void YawKiChanged(double);
 	void YawKdChanged(double);
@@ -206,12 +220,14 @@ private:
 	QSlider				*pAlphaSlider;
 	AttitudePIDControls	*pAttPIDCtrl;
 	RatePIDControls		*pRatePIDCtrl;
+	AltitudePIDControls *pAltPIDCtrl;
 	CommonPIDControls	*pCommonPIDCtrl;
 
 	WheelBox			*pSpeedWheel;
+	WheelBox			*pHoverWheel;
 	QPushButton			*pMotorToggle;
-	QPushButton			*pRecordingToggle;
-	QPushButton			*pPlayToggle;
+	QToolButton			*pRecordingToggle;
+	QToolButton			*pPlayToggle;
 	QLineEdit			*pPIDType;
 	QLineEdit			*pExceptionType;
 	QLineEdit			*pQuadSpeed;
@@ -242,6 +258,7 @@ private:
 	bool				bMotorToggle;
 	bool				bRecordToggle;
 	bool				bIsPlaying;
+	bool				bManualSpeedCtrl; 
     Plot				*y_plot;
 	Plot				*p_plot;
 	Plot				*r_plot;
@@ -261,6 +278,7 @@ public:
 	RatePIDParams		mRatePIDParams;
 	// These pointers are reset when the PID type is changed
 	PIDParamsDef		*pPitchPIDParams, *pYawPIDParams;
+	PIDParamsDef		mAltPIDParams;
 	Angle2RateParams	mA2RParams;
 	PIDType				ePIDType; // Rate or Attitude
 };

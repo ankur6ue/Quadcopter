@@ -54,10 +54,10 @@ unsigned long MotorCtrl::Run()
 	{
 		if (QuadState.bMotorToggle)
 		{
-			MotorFL.Run(QuadState.Speed - QuadState.PID_Pitch  + QuadState.PID_Yaw);
-			MotorBL.Run(QuadState.Speed + QuadState.PID_Roll - QuadState.PID_Yaw);
-			MotorFR.Run(QuadState.Speed - QuadState.PID_Roll - QuadState.PID_Yaw);
-			MotorBR.Run(QuadState.Speed + QuadState.PID_Pitch  + QuadState.PID_Yaw);
+			MotorFL.Run(QuadState.Speed + QuadState.PID_Alt - QuadState.PID_Pitch  - QuadState.PID_Yaw);
+			MotorBL.Run(QuadState.Speed + QuadState.PID_Alt + QuadState.PID_Roll + QuadState.PID_Yaw);
+			MotorFR.Run(QuadState.Speed + QuadState.PID_Alt - QuadState.PID_Roll + QuadState.PID_Yaw);
+			MotorBR.Run(QuadState.Speed + QuadState.PID_Alt + QuadState.PID_Pitch  - QuadState.PID_Yaw);
 		}
 	}
 	unsigned long now = millis();

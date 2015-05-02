@@ -1,10 +1,11 @@
 Attitude YawPIDParams 12 0 5
 Attitude PitchPIDParams 24 3 10
 Attitude RollPIDParams 24 3 10
-Rate YawPIDParams 1 0 0
-Rate PitchPIDParams 4.8 1 0
-Rate RollPIDParams 4.8 1 0
-Angle2Rate Params 3.2 3.2 2.6
+Rate YawPIDParams 2.5 0.5 0
+Rate PitchPIDParams 2.5 1.5 0
+Rate RollPIDParams 2.5 1.5 0
+Altitude PIDParams 2 0 0
+Angle2Rate Params 2.5 3 3
 RollHoverAttitude 0
-PitchHoverAttitude 0
+PitchHoverAttitude 3
 PIDType Rate

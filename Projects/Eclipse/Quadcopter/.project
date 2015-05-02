@@ -37,6 +37,16 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AccelSampler.h</locationURI>
 		</link>
 		<link>
+			<name>AltitudeCtrl.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AltitudeCtrl.cpp</locationURI>
+		</link>
+		<link>
+			<name>AltitudeCtrl.h</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AltitudeCtrl.h</locationURI>
+		</link>
+		<link>
 			<name>AttitudePIDCtrl.cpp</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Src/Apps/AttitudePIDCtrl.cpp</locationURI>

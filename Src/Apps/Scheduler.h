@@ -23,7 +23,7 @@ class Task
 public:
 	Task(){};
 	//Frequency is in Hertz
-	Task(float frequency, const char* name);
+	Task(int frequency, const char* name);
 
 	void 	Execute();
 	virtual unsigned long	Run() { return 0; }

@@ -23,15 +23,34 @@ bool DataParserImplCommands::Parse(char* incomingData, int packetLength, char* c
 {
 	bPrefixFound = false;
 	if (PrefixLength == -1) return false;
-//	printf("%s\n", incomingData);
-	for (int i = 0; i < max(0, packetLength-PrefixLength); i++)
+	//	printf("%s\n", incomingData);
+	for (int i = 0; i < max(0, packetLength - PrefixLength); i++)
 	{
 		if (!strncmp(incomingData + i, Prefix, PrefixLength))
 		{
 			char paramName[50];
 			float val;
-			sscanf(incomingData+i+PrefixLength, "%s %f", paramName, &val);
+			sscanf(incomingData + i + PrefixLength, "%s %f", paramName, &val);
 			EchoCommand* cmd = new EchoCommand(paramName, val);
+			pSamplingThread->signalEchoCommand(cmd);
+			bPrefixFound = true;
+		}
+	}
+	return bPrefixFound;
+}
+
+bool DataParserImplThrottle::Parse(char* incomingData, int packetLength, char* commandId)
+{
+	bPrefixFound = false;
+	if (PrefixLength == -1) return false;
+	//	printf("%s\n", incomingData);
+	for (int i = 0; i < max(0, packetLength - PrefixLength); i++)
+	{
+		if (!strncmp(incomingData + i, Prefix, PrefixLength))
+		{
+			float val;
+			sscanf(incomingData + i + PrefixLength, "%f", &val);
+			EchoCommand* cmd = new EchoCommand("Thr", val);
 			pSamplingThread->signalEchoCommand(cmd);
 			bPrefixFound = true;
 		}
@@ -461,13 +480,13 @@ void DataParserImplMpr::Plot(double elapsed)
 		const QPointF r1( elapsed, accelAngleX);
 		SignalData::instance(roll, MPR)->append( r1 );
 		*/
-		const QPointF y1(elapsed, 50*Data[0]);
+		const QPointF y1(elapsed, Data[0]/100);
 		SignalData::instance(yaw, MPR)->append(y1);
 
-		const QPointF p1(elapsed, 50*Data[1]);
+		const QPointF p1(elapsed, Data[1]);
 		SignalData::instance(pitch, MPR)->append(p1);
 
-		const QPointF r1(elapsed, 50*Data[2]);
+		const QPointF r1(elapsed, 5*Data[2]);
 		SignalData::instance(roll, MPR)->append(r1);
 	}
 }

@@ -107,6 +107,13 @@ void PrintHelper::Serialize(const char* prefix, const char* name, float val)
 	SERIAL.print(tmp1);
 }
 
+void PrintHelper::Serialize(const char* prefix, const char* name, int val)
+{
+	char tmp1[50];
+	sprintf(tmp1, "%s %s %d", prefix, name, val);
+	SERIAL.print(tmp1);
+}
+
 void PrintHelper::Print(char* str)
 {
 	SERIAL.print(str);
@@ -128,20 +135,20 @@ unsigned long QuadStateLogger::Run()
 
 void QuadStateLogger::SendQuadState()
 {
-	PrintHelper::Serialize("QS", "PKp", QuadState.Kp);
-	PrintHelper::Serialize("QS", "PKi", QuadState.Ki);
-	PrintHelper::Serialize("QS", "PKd", QuadState.Kd);
+	PrintHelper::Serialize("QS", "PKp", QuadState.PitchParams.Kp);
+	PrintHelper::Serialize("QS", "PKi", QuadState.PitchParams.Ki);
+	PrintHelper::Serialize("QS", "PKd", QuadState.PitchParams.Kd);
 
-	PrintHelper::Serialize("QS", "Yaw_Kp", QuadState.Yaw_Kp);
-	PrintHelper::Serialize("QS", "Yaw_Ki", QuadState.Yaw_Ki);
-	PrintHelper::Serialize("QS", "Yaw_Kd", QuadState.Yaw_Kd);
+	PrintHelper::Serialize("QS", "Yaw_Kp", QuadState.YawParams.Kp);
+	PrintHelper::Serialize("QS", "Yaw_Ki", QuadState.YawParams.Ki);
+	PrintHelper::Serialize("QS", "Yaw_Kd", QuadState.YawParams.Kd);
 
 	PrintHelper::Serialize("QS", "A2R_PKp", QuadState.A2R_PKp);
 	PrintHelper::Serialize("QS", "A2R_RKp", QuadState.A2R_RKp);
 	PrintHelper::Serialize("QS", "A2R_YKp", QuadState.A2R_YKp);
 
 	PrintHelper::Serialize("QS", "MotorToggle", QuadState.bMotorToggle);
-	PrintHelper::Serialize("QS", "Speed", QuadState.Speed);
+	PrintHelper::Serialize("QS", "Speed", QuadState.PID_Alt + QuadState.Speed);
 	PrintHelper::Serialize("QS", "PIDType", QuadState.ePIDType);
 	PrintHelper::AttachSentinal();
 }
@@ -149,9 +156,14 @@ void QuadStateLogger::SendQuadState()
 unsigned long PIDStateLogger::Run()
 {
 	unsigned long before = millis();
+	Log.Reset();
 	float angles[4] =
 	{ (float)before, QuadState.Yaw, QuadState.Pitch, QuadState.Roll };
 	Log.AddtoLog("ypr", angles, 4);
+	SERIAL.print(Log.LogBuf);
+	PrintHelper::AttachSentinal();
+	delay(1);
+	Log.Reset();
 	float pidParams[4] =
 	{ (float)before, QuadState.PID_Yaw, QuadState.PID_Pitch, QuadState.PID_Roll };
 	Log.AddtoLog("PID", pidParams, 4);
@@ -159,14 +171,14 @@ unsigned long PIDStateLogger::Run()
 	// Avoid Flush. It appears to be quite expensive
 //	SERIAL.flush();
 	PrintHelper::AttachSentinal();
+	delay(1);
 	float motionParams[7] = {(float)before, /*QuadState.YawOmega, QuadState.PitchOmega,
-	QuadState.RollOmega, */QuadState.YawAccel, QuadState.PitchAccel, QuadState.RollAccel };
+	QuadState.RollOmega, */QuadState.CurrentAltitude, QuadState.PID_Alt, QuadState.Vz };
 	Log.Reset();
 	Log.AddtoLog("mpr", motionParams, 4);
 	SERIAL.print(Log.LogBuf);
 //	SERIAL.flush();
 	PrintHelper::AttachSentinal();
-	Log.Reset();
 
 	// SERIAL.print("NumInterrupts = "); SERIAL.println(MPUInterruptCounter);
 	MPUInterruptCounter = 0;

@@ -34,6 +34,8 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include <QFileSystemModel>
 #include <QListView>
 #include <MySortFilterProxyModel.h>
+#include "qtoolbutton.h"
+#include "QSizePolicy.h"
 
 void MainWindow::CreatePlots()
 {
@@ -83,10 +85,14 @@ void MainWindow::CreatePlotControls()
 
 void MainWindow::CreateFlightLogControls()
 {
-	pRecordingToggle = new QPushButton("Record", this);
-	pPlayToggle = new QPushButton("Play", this);
+	pRecordingToggle = new QToolButton(this);
+	pPlayToggle = new QToolButton(this);
+	pPlayToggle->setIcon(QIcon(":/images/Images/play.jpg"));
+	pPlayToggle->setIconSize(QSize(20, 20));
 	pPlayToggle->setEnabled(false);
-	pRecordingToggle->setStyleSheet("qproperty-icon: url(record.jpg);");
+	pRecordingToggle->setIcon(QIcon(":/images/Images/record.jpg"));
+	pRecordingToggle->setIconSize(QSize(20, 20));
+//	pRecordingToggle->setStyleSheet("background-image: url(:images/record.jpg);");
 	pfileModel = new QFileSystemModel(this);
 	pfileModel->setRootPath("C:\\Embedded\\Logs\\");
 	pLogFilelist = new QListView(this);
@@ -124,13 +130,16 @@ void MainWindow::SetPlotState(bool bIsPlaying)
 void MainWindow::onPlayToggled()
 {
 	bIsPlaying = !bIsPlaying;
+	pPlayToggle->setIcon(bIsPlaying ? QIcon(":/images/Images/pause.png") : QIcon(":/images/Images/play.jpg"));
 	SetPlotState(bIsPlaying);
 }
 
 // Disable play button once log playback is over.
 void MainWindow::onLogPlaybackOver()
 {
+	pPlayToggle->setIcon(QIcon(":/images/Images/play.jpg"));
 	pPlayToggle->setEnabled(false);
+
 }
 
 void MainWindow::onLogFileSelected(const QModelIndex& index)
@@ -140,7 +149,7 @@ void MainWindow::onLogFileSelected(const QModelIndex& index)
 	pPlayToggle->setEnabled(true);
 	bIsPlaying = true;
 	SetPlotState(bIsPlaying);
-	pPlayToggle->setText("Stop");
+	pPlayToggle->setIcon(QIcon(":/images/Images/pause.png"));
 	// OnLogFileSelected is not a slot in SamplingThread otherwise FileModel will need to also be declared in SamplingThread, potentially creating
 	// threading issues. Haven't thought through this in detail though
 	emit(logFileSelected(fileName));
@@ -175,9 +184,23 @@ void MainWindow::SetPIDParams()
 	pCommonPIDCtrl->pPitchKp->setValue( pPitchPIDParams->fKp );
 	pCommonPIDCtrl->pPitchKi->setValue( pPitchPIDParams->fKi );
 	pCommonPIDCtrl->pPitchKd->setValue( pPitchPIDParams->fKd );
+
 	pCommonPIDCtrl->pYawKp->setValue( pYawPIDParams->fKp );
 	pCommonPIDCtrl->pYawKi->setValue( pYawPIDParams->fKi );
 	pCommonPIDCtrl->pYawKd->setValue( pYawPIDParams->fKd );
+
+}
+
+void MainWindow::CreateAltitudePIDControls()
+{
+	pAltPIDCtrl = new AltitudePIDControls();
+	pAltPIDCtrl->pAltKp = new WheelBox("Alt_Kp", 0, 2, 0.25, this);
+	pAltPIDCtrl->pAltKi = new WheelBox("Alt_Ki", 0, 2, 0.1, this);
+	pAltPIDCtrl->pAltKd = new WheelBox("Alt_Kd", 0, 4, 0.5, this);
+	
+	pAltPIDCtrl->pAltKp->setValue(mAltPIDParams.fKp);
+	pAltPIDCtrl->pAltKi->setValue(mAltPIDParams.fKi);
+	pAltPIDCtrl->pAltKd->setValue(mAltPIDParams.fKd);
 }
 
 void MainWindow::CreateAttitudePIDControls()
@@ -198,6 +221,7 @@ void MainWindow::CreatePIDControls()
 	CreateCommonPIDControls();
 	CreateRatePIDControls();
 	CreateAttitudePIDControls();
+	CreateAltitudePIDControls();
 }
 
 void MainWindow::CreateQuadStatePanel()
@@ -254,8 +278,8 @@ void MainWindow::CreateQuadControlPanel()
 	palette2->setColor(QPalette::ButtonText, Qt::Key_Green);
 	// Groubox for the Pitch/Yaw Control
 
-	pPitchHoverAngleWheel = new WheelBox( "Pitch Hover Angle", -25, 25, 1, this );
-	pRollHoverAngleWheel = new WheelBox( "Roll Hover Angle", -25, 25, 1, this );
+	pPitchHoverAngleWheel = new WheelBox( "Pitch Hover Angle", -8, 8, 0.2, this );
+	pRollHoverAngleWheel = new WheelBox( "Roll Hover Angle", -7, 7, 0.2, this );
 	pPitchHoverAngleWheel->setValue(PitchHoverAttitude);
 	pRollHoverAngleWheel->setValue(RollHoverAttitude);
 
@@ -267,6 +291,10 @@ void MainWindow::CreateQuadControlPanel()
 	pSpeedWheel = new WheelBox( "Speed", 0.0, 1500.0, 2, this );
 	pSpeedWheel->setContentsMargins(0,0,0,0);
 	pSpeedWheel->setValue( 0.0 );
+
+	pHoverWheel = new WheelBox("Hover Altitude", 0.0, 300.0, 2, this);
+	pHoverWheel->setContentsMargins(0, 0, 0, 0);
+	pHoverWheel->setValue(0.0);
 
 	pMotorToggle = new QPushButton("Off", this);
 	pMotorToggle->setCheckable(true);
@@ -299,8 +327,9 @@ void MainWindow::ManageLayout()
 	vLayout1->addWidget( r_plot, 4);
 
 	// Working on the second VBox. Three VBoxes and corresponding group boxes
-	QGroupBox* gpBox2a = new QGroupBox("Plot Parameters", this);
-	QVBoxLayout* vLayout2a = new QVBoxLayout();
+
+	QGroupBox* gpBox2a = new QGroupBox("Quadcopter Power Control", this);
+	QGridLayout* vLayout2a = new QGridLayout();
 	gpBox2a->setLayout(vLayout2a);
 
 	QGroupBox* gpBox2b = new QGroupBox("Angle to Rate Parameters", this);
@@ -320,10 +349,13 @@ void MainWindow::ManageLayout()
 	vLayout2->addWidget(gpBox2c);
 	vLayout2->addWidget(gpBox2d);
 
-	// Add Plot Control Widgets
-	vLayout2a->addWidget( pIntervalWheel, 0, Qt::AlignHCenter );
-	vLayout2a->addWidget( pTimerWheel, 0, Qt::AlignHCenter );
-	vLayout2a->addWidget( pAmplitudeKnob, 0, Qt::AlignHCenter );
+	vLayout2a->addWidget(pFR, 2, 0, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pFL, 2, 1, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pBR, 3, 0, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pBL, 3, 1, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pSpeedWheel, 0, 0, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pHoverWheel, 0, 1, 1, 1, Qt::AlignHCenter);
+	vLayout2a->addWidget(pMotorToggle, 1, 0, 1, 2, Qt::AlignHCenter);
 
 	// Angle to Roll controls
 	vLayout2b->setSpacing(0);
@@ -346,6 +378,10 @@ void MainWindow::ManageLayout()
 	vLayout2c->addWidget (pCommonPIDCtrl->pYawKp, 1, 0, 1, 1, Qt::AlignCenter);
 	vLayout2c->addWidget (pCommonPIDCtrl->pYawKi, 1, 1, 1, 1, Qt::AlignCenter);
 	vLayout2c->addWidget (pCommonPIDCtrl->pYawKd, 1, 2, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget(pAltPIDCtrl->pAltKp, 2, 0, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget(pAltPIDCtrl->pAltKi, 2, 1, 1, 1, Qt::AlignCenter);
+	vLayout2c->addWidget(pAltPIDCtrl->pAltKd, 2, 2, 1, 1, Qt::AlignCenter);
+
 	// UI elements representing Quadcopter state
 
 	vLayout2d->setSpacing(0);
@@ -414,10 +450,6 @@ void MainWindow::ManageLayout()
 	QGridLayout* vLayout3b = new QGridLayout();
 	gpBox3b->setLayout(vLayout3b);
 
-	QGroupBox* gpBox3c = new QGroupBox("Quadcopter Power Control", this);
-	QGridLayout* vLayout3c = new QGridLayout();
-	gpBox3c->setLayout(vLayout3c);
-
 	QGroupBox* gpBox3d = new QGroupBox("Flight Data Recording", this);
 	QGridLayout* vLayout3d = new QGridLayout();
 	gpBox3d->setLayout(vLayout3d);
@@ -426,24 +458,28 @@ void MainWindow::ManageLayout()
 	QGridLayout* vLayout3e = new QGridLayout();
 	gpBox3e->setLayout(vLayout3e);
 
+	QGroupBox* gpBox3f = new QGroupBox("Plot Parameters", this);
+	QVBoxLayout* vLayout3f = new QVBoxLayout();
+	gpBox3f->setLayout(vLayout3f);
+	
+	vLayout3->addWidget(gpBox3f);
 	vLayout3->addWidget(gpBox3a);
 	vLayout3->addWidget(gpBox3b);
 	vLayout3->addWidget(gpBox3e);
-	vLayout3->addWidget(gpBox3c);
 	vLayout3->addWidget(gpBox3d);
+
+	// Add Plot Control Widgets
+	vLayout3f->addWidget(pIntervalWheel, 0, Qt::AlignHCenter);
+	vLayout3f->addWidget(pTimerWheel, 0, Qt::AlignHCenter);
+	vLayout3f->addWidget(pAmplitudeKnob, 0, Qt::AlignHCenter);
+
+	// Add Roll/Pitch Control Widgets
 	vLayout3a->addWidget( pRollCtrlWheel, 0, 0, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pPitchCtrlWheel, 0, 1, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pYawCtrlWheel, 0, 2, 1, 1, Qt::AlignLeft);
 
 	vLayout3b->addWidget( pRollHoverAngleWheel, 0, 0, 1, 1, Qt::AlignLeft);
 	vLayout3b->addWidget( pPitchHoverAngleWheel, 0, 1, 1, 1, Qt::AlignLeft);
-
-	vLayout3c->addWidget (pFR, 2, 0, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pFL, 2, 1, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pBR, 3, 0, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget (pBL, 3, 1, 1, 1, Qt::AlignHCenter);
-	vLayout3c->addWidget( pSpeedWheel, 0, 0, 1, 2, Qt::AlignHCenter);
-	vLayout3c->addWidget (pMotorToggle, 1, 0, 1, 2, Qt::AlignHCenter);
 
 	vLayout3d->setSpacing(0);
 	vLayout3d->setMargin(0);
@@ -468,4 +504,4 @@ void MainWindow::ManageLayout()
 	vLayout3a->addWidget( pArrowPad->pButtonLeft, 1, 0, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pArrowPad->pButtonRight, 1, 2, 1, 1, Qt::AlignLeft);
 	vLayout3a->addWidget( pArrowPad->pButtonDown, 2, 1, 1, 1, Qt::AlignLeft);
-	*/
+	*/	

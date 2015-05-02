@@ -121,7 +121,7 @@ void IMU::Init()
 	 * 3. Digital Low Pass Filter Mode: 3
 	 * 4. GyroRate: Corresponds to a sample rate of 500Hz.
 	 */
-
+	ACCEL_GRAVITY = 9.8; // m/s/s
 	IMUInitParams IMUInitParams(MPU6050_GYRO_FS_1000, MPU6050_ACCEL_FS_2, 3, 1);
 	// Must Reset the MPU in the beginning
 	accelgyro->reset();
@@ -179,52 +179,10 @@ void IMU::Init()
 	SERIAL.print(aZOffset), SERIAL.print(" ");
 
 	Reset();
-/*
-	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //Set Starting angles
-	accelgyro->setDLPFMode(3);  //Set Low Pass filter
-
-	accXangle = (atan2(accX,accZ)+PI)*RAD_TO_DEG;
-	accYangle = (atan2(accY,accZ)+PI)*RAD_TO_DEG; //400
-	float x = M_PI;
-	//kalmanX.setAngle(accXangle); 
-	//kalmanY.setAngle(accYangle);
-	//kalmanZ.setAngle(accZangle);
-
-	gyroXangle = accXangle;
-	gyroYangle = accYangle;
-	gyroZangle = 0;
-
-	alpha_gyro = 0.995; 
-	c = (1-alpha_gyro)*1;     
-	compAngleX = accXangle;   
-	compAngleY = accYangle;
-	compAngleX0 = accXangle;   
-
-	//Gyro Calibration: Rough guess of the gyro drift at startup
-	float n = 200;
-
-	float sX = 0.0;
-	float sY = 0.0;
-	float sZ = 0.0;	
-
-	for (int i = 0; i < n; i++)
-	{
-		accelgyro->getRotation(&gyroX, &gyroY, &gyroZ);
-		sX += accelgyro->getRotationX();
-		sY += accelgyro->getRotationY();
-		sZ += accelgyro->getRotationZ();
-	}
-
-	gyroXoffset = sX/n;
-	gyroYoffset = sY/n;
-	gyroZoffset = sZ/n;
-
-	j=0;
-	*/
 }
-static unsigned long tmp = 0;
+
 bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega, float& pitch_omega, float& roll_omega,
-		float& yaw_accel, float& pitch_accel, float& roll_accel, float& yaw2, float& pitch2, float& roll2)
+		float& yaw_accel, float& pitch_accel, float& roll_accel)
 {
 	unsigned long now = millis();
 	float dt = (now - Before) / 1000.0;
@@ -235,11 +193,9 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	fgyroZ = (gyroZ - gZOffset) / GYRO_FACTOR;
 
 	cAccelSampler.GetAccelAvg(faccX, faccY, faccZ);
-	// Remove offsets and scale accelerometer data
-	//faccX = (accX /*- aXOffset*/) / ACCEL_FACTOR;
-	//faccY = (accY /*- aYOffset)*/) / ACCEL_FACTOR;
-	//faccZ = (accZ) / ACCEL_FACTOR;
 
+	// Integrate acceleration along z to get velocity (cm/s)
+	fVz += (faccZ-1)*dt*100*ACCEL_GRAVITY;
 	// Note that we must use scaled angular velocities and accelerations for PID loop
 	// After the scale adjustment is applied, the resulting values are in physical units (degrees/sec etc)
 	// and independent of gyro settings such as gyro/accel range etc. If unscaled values are used,
@@ -252,35 +208,13 @@ bool IMU::IntegrateGyro(float& yaw, float& pitch, float& roll, float& yaw_omega,
 	roll_accel		= faccY;
 	yaw_accel		= faccZ;
 
-	// Angle of rotation about Y axis computed from the acceleration vector
-//	float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RADIANS_TO_DEGREES;
-	// Angle of rotation about X Axis computer from the acceleration vector
-//	float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES;
-	// Acceleration doesn't give info about rotation around Z
-//	float accelAngleZ = 0;
-
-//	float gyroAngleX = fgyroX * dt + fLastGyroAngleX;
-//	float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
-//	float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
 	UpdateMatrix(fgyroX, fgyroY, fgyroZ, faccX, faccY, faccZ, dt);
 	Rot.ToEuler(yaw, pitch, roll);
 	// Convert to degree
 	yaw = yaw*RADIANS_TO_DEGREES;
 	pitch = pitch*RADIANS_TO_DEGREES;
 	roll = roll*RADIANS_TO_DEGREES;
-	// Apply the complementary filter to figure out the change in angle - choice of alpha is
-	// estimated now.  Alpha depends on the sampling rate...
-	const float alpha = 0.95;
-//	float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
-//	float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
-//	float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
 
-//	fLastGyroAngleX = angleX;
-//	fLastGyroAngleY = angleY;
-//	fLastGyroAngleZ = angleZ;
-//	pitch2 			= fLastGyroAngleY;
-//	roll2 			= fLastGyroAngleX;
-//	yaw2 			= fLastGyroAngleZ;
 	Before = now;
 	return true;
 }
@@ -317,6 +251,9 @@ void IMU::Reset()
 	fLastGyroAngleZ = 0;
 	fLastGyroAngleX = 0;
 	fLastGyroAngleY = 0;
+	fVx				= 0;
+	fVy				= 0;
+	fVz				= 0;
 	RPCorrection_I.SetZero();
 	// Reset Rot
 	Rot.Reset();
@@ -330,12 +267,6 @@ bool IMU::DMPInit()
     // load and configure the DMP
     SERIAL.println(F("Initializing DMP..."));
     bool devStatus = accelgyro->dmpInitialize();
-
-    // supply your own gyro offsets here, scaled for min sensitivity
- //   mpu.setXGyroOffset(220);
- //   mpu.setYGyroOffset(76);
- //   mpu.setZGyroOffset(-85);
- //   mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -356,6 +287,12 @@ bool IMU::DMPInit()
     return DMPReady;
 }
 
+float IMU::GetVelocityDelta()
+{
+	float tmp 	= fVz;
+	fVz 		= 0;
+	return tmp;
+}
 bool IMU::GetMotion6(float angles[])
 {
 	accelgyro->getMotion6(&accX, &accY, &accZ, &gyroX, &gyroY, &gyroZ);  //400µs
@@ -423,4 +360,32 @@ bool IMU::GetYPR(float& yaw, float& pitch, float& roll)
 	}
 	return false;
 }
+/*
+void IMU::PerAxisIntegration()
+{
+		// Angle of rotation about Y axis computed from the acceleration vector
+		float accelAngleY = atan(-faccX / sqrt(faccZ*faccZ + faccY*faccY)) * RADIANS_TO_DEGREES;
+		// Angle of rotation about X Axis computer from the acceleration vector
+		float accelAngleX = atan(faccY / faccZ) * RADIANS_TO_DEGREES;
+		// Acceleration doesn't give info about rotation around Z
+		float accelAngleZ = 0;
 
+		float gyroAngleX = fgyroX * dt + fLastGyroAngleX;
+		float gyroAngleY = fgyroY * dt + fLastGyroAngleY;
+		float gyroAngleZ = fgyroZ * dt + fLastGyroAngleZ;
+
+		//Apply the complementary filter to figure out the change in angle - choice of alpha is
+		// estimated now.  Alpha depends on the sampling rate...
+		const float alpha = 0.95;
+		float angleX = alpha * gyroAngleX + (1.0 - alpha) * accelAngleX;
+		float angleY = alpha * gyroAngleY + (1.0 - alpha) * accelAngleY;
+		float angleZ = gyroAngleZ;  //Accelerometer doesn't give z-angle
+
+		fLastGyroAngleX = angleX;
+		fLastGyroAngleY = angleY;
+		fLastGyroAngleZ = angleZ;
+		pitch2 			= fLastGyroAngleY;
+		roll2 			= fLastGyroAngleX;
+		yaw2 			= fLastGyroAngleZ;
+}
+*/

@@ -64,11 +64,11 @@ void RatePIDCtrl::SetA2RTunings(double A2R_kp, Axis eAxis)
 	PIDCtrlData[eAxis].A2R_Kp = A2R_kp;
 }
 
-void RatePIDCtrl::SetTunings(double kp, double ki, double kd, Axis eAxis)
+void RatePIDCtrl::SetTunings(PIDParams& params, Axis eAxis)
 {
-	PIDCtrlData[eAxis].Kp = kp;
-	PIDCtrlData[eAxis].Ki = ki/1000;
-	PIDCtrlData[eAxis].Kd = kd*1000;
+	PIDCtrlData[eAxis].Kp = params.Kp;
+	PIDCtrlData[eAxis].Ki = params.Ki/1000;
+	PIDCtrlData[eAxis].Kd = params.Kd*1000;
 }
 
 double RatePIDCtrl::GetAttitude(Axis eAxis)
@@ -79,6 +79,7 @@ double RatePIDCtrl::GetAttitude(Axis eAxis)
 void RatePIDCtrl::SetHoverAttitude(double attitude, Axis eAxis)
 {
 	PIDCtrlData[eAxis].HoverAttitudeBF = attitude;
+	PIDCtrlData[eAxis].TargetAttitudeBF = PIDCtrlData[eAxis].HoverAttitudeBF;
 }
 
 void RatePIDCtrl::OnControlInput(double userInput, Axis eAxis)
@@ -120,8 +121,10 @@ void RatePIDCtrl::Compute(double* angles, double* angVels, double* output)
 				((i < -RateWindUp) && (rate_error > 0)) ||
 				((i < RateWindUp) && (i > -RateWindUp)))
 			{
-				PIDCtrlData[axis].Errsum += (rate_error) * timeChange;
-				i = PIDCtrlData[axis].Errsum*PIDCtrlData[axis].Ki;
+				// Rolling the Ki term in the Error sum allows for changing Ki without a
+				// jump in I.
+				PIDCtrlData[axis].Errsum += (rate_error) * timeChange*PIDCtrlData[axis].Ki;
+				i = PIDCtrlData[axis].Errsum;
 			}
 		}
 		PIDCtrlData[axis].I = i;

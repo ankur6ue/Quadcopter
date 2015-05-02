@@ -66,7 +66,8 @@ enum DirtyFlags: int
 	ROLLHOVERATTITUDE	= 2048,
 	SEND_BEACON			= 4096,
 	PIDTYPE				= 8192,
-	ALPHA				= 16384
+	ALPHA				= 16384,
+	HOVERALT			= 32768
 };
 
 enum PIDFlags: int
@@ -85,7 +86,11 @@ enum PIDFlags: int
 
 	A2RPitch	= 512,
 	A2RYaw		= 1024,
-	A2RRoll		= 2048
+	A2RRoll		= 2048,
+
+	Altitude_Ki = 4096,
+	Altitude_Kp = 8192,
+	Altitude_Kd = 16384
 };
 
 enum MotorId: int
@@ -154,6 +159,14 @@ public:
 		lock.lockForWrite();
 		Speed = _speed;
 		SetFlag(SPEED);
+		doUnlock();
+	}
+
+	void SetHoverAltitude(double hoverAlt)
+	{
+		lock.lockForWrite();
+		HoverAlt = hoverAlt;
+		SetFlag(HOVERALT);
 		doUnlock();
 	}
 
@@ -253,7 +266,7 @@ public:
 	void SetRollDisplacement(double setPoint)
 	{
 		lock.lockForWrite();
-		RollSetPoint = setPoint;
+		RollDisplacement = setPoint;
 		SetFlag(ROLLDISPLACEMENT);
 		doUnlock();
 	}
@@ -269,13 +282,13 @@ public:
 	double GetPitchHoverAttitude()
 	{
 		ClearFlag(PITCHHOVERATTITUDE);
-		return PitchDisplacement;
+		return PitchHoverAttitude;
 	}
 
 	double GetRollHoverAttitude()
 	{
 		ClearFlag(ROLLHOVERATTITUDE);
-		return RollSetPoint;
+		return RollHoverAttitude;
 	}
 
 	double GetPitchDisplacement()
@@ -287,7 +300,7 @@ public:
 	double GetRollDisplacement()
 	{
 		ClearFlag(ROLLDISPLACEMENT);
-		return RollSetPoint;
+		return RollDisplacement;
 	}
 
 	double GetYawDisplacement()
@@ -320,6 +333,33 @@ public:
 		PitchPIDParams.fKd = _kd;
 		SetFlag(PIDPARAMS);
 		SetPIDParamsFlag(Pitch_Kd);
+		doUnlock();
+	}
+
+	void SetAltitudeKi(double _ki)
+	{
+		lock.lockForWrite();
+		AltitudePIDParams.fKi = _ki;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(Altitude_Ki);
+		doUnlock();
+	}
+
+	void SetAltitudeKp(double _kp)
+	{
+		lock.lockForWrite();
+		AltitudePIDParams.fKp = _kp;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(Altitude_Kp);
+		doUnlock();
+	}
+
+	void SetAltitudeKd(double _kd)
+	{
+		lock.lockForWrite();
+		AltitudePIDParams.fKd = _kd;
+		SetFlag(PIDPARAMS);
+		SetPIDParamsFlag(Altitude_Kd);
 		doUnlock();
 	}
 
@@ -440,6 +480,27 @@ public:
 		return YawPIDParams.fKd;
 	}
 
+	float GetAltitudeKp()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(Altitude_Kp);
+		return AltitudePIDParams.fKp;
+	}
+
+	float GetAltitudeKi()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(Altitude_Ki);
+		return AltitudePIDParams.fKi;
+	}
+
+	float GetAltitudeKd()
+	{
+		ClearFlag(PIDPARAMS);
+		ClearPIDParamsFlag(Altitude_Kd);
+		return AltitudePIDParams.fKd;
+	}
+
 	bool IsSendBeacon()
 	{
 		return DirtyFlag&SEND_BEACON;
@@ -499,6 +560,12 @@ public:
 		return Speed;
 	}
 
+	int GetHoverAltitude()
+	{
+		ClearFlag(HOVERALT);
+		return HoverAlt;
+	}
+
 	double GetDCMAlpha()
 	{
 		ClearFlag(ALPHA);
@@ -541,37 +608,25 @@ private:
 	int		MotorState;
 	int		Speed;
 	double	Alpha;
-	int		PitchDisplacement;
-	int		PitchHoverAttitude;
-	int		RollSetPoint;
-	int		RollHoverAttitude;
-	int		YawSetPoint;
+	double	PitchDisplacement;
+	double	PitchHoverAttitude;
+	double	RollDisplacement;
+	double	RollHoverAttitude;
+	double	YawSetPoint;
+	double	HoverAlt;
 	PIDType	ePIDType;
 
-	struct PitchPIDParamsDef
+	struct PIDParamsDef
 	{
 	float	fKp;
 	float	fKi;
 	float	fKd;
-	} PitchPIDParams;
-
-	struct YawPIDParamsDef
-	{
-	float	fKp;
-	float	fKi;
-	float	fKd;
-	} YawPIDParams;
+	} PitchPIDParams, YawPIDParams, RollPIDParams, AltitudePIDParams;
 
 	double dA2RPitch;
 	double dA2RRoll;
 	double dA2RYaw;
 
-	struct RollPIDParamsDef
-	{
-	float	fKp;
-	float	fKi;
-	float	fKd;
-	} RollPIDParams;
 	// Flag used to indicate that the controller application has just started.
 	// set to true in the constructor of main window class. Used to reset the quadcopter state
 	// as it is possible that the quad is already running when the application is started

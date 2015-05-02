@@ -65,6 +65,7 @@ public:
 	virtual ~PrintHelper(){};
 
 	static void Serialize(const char* prefix, const char* name, float val);
+	static void Serialize(const char* prefix, const char* name, int val);
 	static void AttachSentinal();
 	static void Print(char* str);
 };

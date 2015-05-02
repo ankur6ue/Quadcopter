@@ -126,6 +126,14 @@ public:
 	void Plot(double elapsed);
 };
 
+class DataParserImplThrottle : public DataParserImpl
+{
+public:
+	DataParserImplThrottle(SamplingThread* psamplingThread) : DataParserImpl(psamplingThread, "Thr"){};
+	virtual bool Parse(char* incomingData, int packetLength, char* commandId = NULL);
+//	void Plot(double elapsed);
+};
+
 class DataParserImplMpr: public DataParserImpl
 {
 public:

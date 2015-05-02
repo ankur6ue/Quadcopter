@@ -24,6 +24,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include <qlineedit.h>
 #include <qgroupbox.h>
 #include <qcheckbox.h>
+#include "qtoolbutton.h"
 #include <qpushbutton.h>
 #include "signaldata.h"
 #include "commanddef.h"
@@ -43,6 +44,8 @@ void MainWindow::ReadPIDParams(AttitudePIDParams& attPIDParams, RatePIDParams& r
 		fscanf(fp, "Rate YawPIDParams %f %f %f\n", &ratePIDParams.YawPIDParams.fKp, &ratePIDParams.YawPIDParams.fKi, &ratePIDParams.YawPIDParams.fKd); 
 		fscanf(fp, "Rate PitchPIDParams %f %f %f\n", &ratePIDParams.PitchPIDParams.fKp, &ratePIDParams.PitchPIDParams.fKi, &ratePIDParams.PitchPIDParams.fKd); 
 		fscanf(fp, "Rate RollPIDParams %f %f %f\n", &ratePIDParams.RollPIDParams.fKp, &ratePIDParams.RollPIDParams.fKi, &ratePIDParams.RollPIDParams.fKd); 
+
+		fscanf(fp, "Altitude PIDParams %f %f %f\n", &(mAltPIDParams.fKp), &(mAltPIDParams.fKi), &(mAltPIDParams.fKd));
 
 		fscanf(fp, "Angle2Rate Params %f %f %f\n", &mA2RParams.A2R_Yaw, &mA2RParams.A2R_Pitch, &mA2RParams.A2R_Roll); 
 		
@@ -96,6 +99,8 @@ MainWindow::MainWindow( QWidget *parent ):
 	// Initialize the Joystick 
 	SetupCtrlInput();
 	ReadPIDParams(mAttPIDParams, mRatePIDParams);
+//	setMaximumHeight(100);
+	setFixedHeight(900);
 	CreatePlots();
 	CreatePlotControls();
 	CreateFlightLogControls();
@@ -105,6 +110,7 @@ MainWindow::MainWindow( QWidget *parent ):
 	CreateQuadControlPanel();
 	CreateDCMControlPanel();
 	ManageLayout();
+	
 	
     connect( pAmplitudeKnob, SIGNAL( valueChanged( double ) ),
         SIGNAL( amplitudeChanged( double ) ) );
@@ -119,6 +125,8 @@ MainWindow::MainWindow( QWidget *parent ):
 
 	connect( pSpeedWheel, SIGNAL( valueChanged( double ) ), SLOT( speedChanged( double ) ) );
 
+	connect(pHoverWheel, SIGNAL(valueChanged(double)), SLOT(HoverAltitudeChanged(double)));
+
 	connect( pA2RPitchWheel, SIGNAL( valueChanged( double ) ), SLOT( A2RPitchChanged( double ) ) );
 
 	connect( pA2RRollWheel, SIGNAL( valueChanged( double ) ), SLOT( A2RRollChanged( double ) ) );
@@ -130,6 +138,12 @@ MainWindow::MainWindow( QWidget *parent ):
 	connect( pCommonPIDCtrl->pPitchKi, SIGNAL( valueChanged( double ) ), SLOT( PitchKiChanged( double ) ) );
 
 	connect( pCommonPIDCtrl->pPitchKd, SIGNAL( valueChanged( double ) ), SLOT( PitchKdChanged( double ) ) );
+
+	connect(pAltPIDCtrl->pAltKp, SIGNAL(valueChanged(double)), SLOT(AltitudeKpChanged(double)));
+
+	connect(pAltPIDCtrl->pAltKi, SIGNAL(valueChanged(double)), SLOT(AltitudeKiChanged(double)));
+
+	connect(pAltPIDCtrl->pAltKd, SIGNAL(valueChanged(double)), SLOT(AltitudeKdChanged(double)));
 
 	connect( pCommonPIDCtrl->pYawKp, SIGNAL( valueChanged( double ) ), SLOT( YawKpChanged( double ) ) );
 
@@ -231,12 +245,31 @@ void MainWindow::PIDCtrlTypeChanged()
 void MainWindow::AxisMoved(long lX, long lY, long lZ, int moveFlag)
 {
 	printf("lX:%d, lY:%d, lZ:%d\n", lX, lY, lZ);
-	if (moveFlag & X_AXIS)
-		pPitchCtrlWheel->setValue(lX/1000.0*PITCH_CTRL_RANGE);
-	if (moveFlag & Y_AXIS)
-		pRollCtrlWheel->setValue(lY/1000.0*ROLL_CTRL_RANGE);
-	if (moveFlag & Z_AXIS);
-		pYawCtrlWheel->setValue(lZ/1000.0*YAW_CTRL_RANGE);
+
+	if ((moveFlag & X_AXIS))
+	{
+		if (abs(lX) > DEADZONE)
+			pPitchCtrlWheel->setValue(lX / 1000.0*PITCH_CTRL_RANGE);
+		else
+			pPitchCtrlWheel->setValue(0);
+	}
+
+	if ((moveFlag & Y_AXIS))
+	{
+		if (abs(lY) > DEADZONE)
+			pRollCtrlWheel->setValue(lY / 1000.0*ROLL_CTRL_RANGE);
+		else
+			pRollCtrlWheel->setValue(0);
+	}
+	
+	if ((moveFlag & Z_AXIS))
+	{
+		if (abs(lZ) > DEADZONE)
+			pYawCtrlWheel->setValue(lZ / 1000.0*YAW_CTRL_RANGE);
+		else
+			pYawCtrlWheel->setValue(0);
+	}
+
 	if (moveFlag & START)
 	{
 		bool bval = pMotorToggle->isChecked();
@@ -267,6 +300,13 @@ void MainWindow::textChanged(const QString & newText)
 void MainWindow::speedChanged(double speed)
 {
 	UserCommands::Instance().SetSpeed(speed);
+	// User manually changed speed, set manual flag
+	bManualSpeedCtrl = true;
+}
+
+void MainWindow::HoverAltitudeChanged(double hoverAlt)
+{
+	UserCommands::Instance().SetHoverAltitude(hoverAlt);
 }
 
 void MainWindow::A2RPitchChanged(double a2rPitch)
@@ -291,14 +331,14 @@ void MainWindow::A2RYawChanged(double a2rYaw)
 void MainWindow::PitchHoverAngleChanged(double setPoint)
 {
 	PitchHoverAttitude = setPoint;
-//	UserCommands::Instance().SetPitchDisplacement(setPoint);
+	UserCommands::Instance().SetPitchHoverAttitude(setPoint);
 }
 
 // Handlers for user input
 void MainWindow::RollHoverAngleChanged(double setPoint)
 {
 	RollHoverAttitude = setPoint;
-//	UserCommands::Instance().SetRollDisplacement(setPoint);
+	UserCommands::Instance().SetRollHoverAttitude(setPoint);
 }
 
 // Handlers for user input
@@ -317,6 +357,24 @@ void MainWindow::RollCtrlChanged(double setPoint)
 void MainWindow::YawCtrlChanged(double setPoint)
 {
 	UserCommands::Instance().SetYawDisplacement(setPoint);
+}
+
+void MainWindow::AltitudeKiChanged(double ki)
+{
+	mAltPIDParams.fKi = ki;
+	UserCommands::Instance().SetAltitudeKi(ki);
+}
+
+void MainWindow::AltitudeKpChanged(double kp)
+{
+	mAltPIDParams.fKp = kp;
+	UserCommands::Instance().SetAltitudeKp(kp);
+}
+
+void MainWindow::AltitudeKdChanged(double kd)
+{
+	mAltPIDParams.fKd = kd;
+	UserCommands::Instance().SetAltitudeKd(kd);
 }
 
 void MainWindow::PitchKiChanged(double ki)
@@ -364,6 +422,11 @@ void MainWindow::MotorsOn()
 	UserCommands::Instance().SetYawKi(pYawPIDParams->fKi);
 	UserCommands::Instance().SetYawKp(pYawPIDParams->fKp);
 	UserCommands::Instance().SetYawKd(pYawPIDParams->fKd);
+
+	UserCommands::Instance().SetAltitudeKi(mAltPIDParams.fKi);
+	UserCommands::Instance().SetAltitudeKp(mAltPIDParams.fKp);
+	UserCommands::Instance().SetAltitudeKd(mAltPIDParams.fKd);
+	UserCommands::Instance().SetHoverAltitude(4);
 	UserCommands::Instance().SetPIDType(ePIDType);
 
 	if (ePIDType == RatePIDControl)
@@ -372,13 +435,14 @@ void MainWindow::MotorsOn()
 		UserCommands::Instance().SetA2RRoll(mA2RParams.A2R_Roll);
 		UserCommands::Instance().SetA2RYaw(mA2RParams.A2R_Yaw);
 	}
-	UserCommands::Instance().SetSendBeaconFlag();
+//	UserCommands::Instance().SetSendBeaconFlag();
 	ResetSetPoint();
 	pFL->setCheckState(Qt::Checked);
 	pBL->setCheckState(Qt::Checked);
 	pFR->setCheckState(Qt::Checked);
 	pBR->setCheckState(Qt::Checked);
 	UserCommands::Instance().ToggleMotors(true);
+	bManualSpeedCtrl = false;
 }
 
 void MainWindow::MotorsOff()
@@ -410,7 +474,8 @@ void MainWindow::motorToggleClicked()
 void MainWindow::recordToggleClicked()
 {
 	bRecordToggle = !bRecordToggle;
-	pRecordingToggle->setText(bRecordToggle ? "Pause" : "Record");
+	pRecordingToggle->setIcon(bRecordToggle ? QIcon(":/images/Images/stop.jpg") : QIcon(":/images/Images/record.jpg"));
+//	pRecordingToggle->setText(bRecordToggle ? "Pause" : "Record");
 }
 
 void MainWindow::ResetSetPoint()
@@ -452,6 +517,17 @@ void MainWindow::echoCommand(EchoCommand* cmd)
 	{
 		sprintf_s(tmp, 50, "%f", val);
 		pQuadSpeed->setText(tmp);
+		// If we don't block before setting the value for the speedwheel, we'll enter a loop where the updates
+		// are sent to the quad, it adds the alt_threhold adjustment and so on and so forth.
+		// Also, if we are controlling speed manually, don't feed updates from the quad back as they are redundant and lead
+		// to sluggish UI response
+		if (!bManualSpeedCtrl)
+		{
+			pSpeedWheel->blockSignals(true);
+			pSpeedWheel->setValue(val);
+			pSpeedWheel->blockSignals(false);
+		}
+		
 	}
 	if (!strcmp("MotorToggle", commandName))
 	{

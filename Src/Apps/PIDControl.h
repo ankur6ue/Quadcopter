@@ -19,7 +19,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "quadcopter.h"
 #include "Scheduler.h"
 
-#define NUMPIDCONTROLLERS 2 // Attitude Controller, Rate Controller
+#define NUMPIDCONTROLLERS 2 // Rate Controller, Rate Controller
 
 class PIDControllerImpl
 {
@@ -30,7 +30,7 @@ public:
 
 	virtual void Compute(double* angles, double* angVels, double* output) {};
 
-	virtual void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis) {};
+	virtual void SetTunings(PIDParams& params, Axis _eAxis) {};
 
 	virtual void SetA2RTunings(double A2R_kp, Axis _eAxis) {};
 
@@ -85,7 +85,7 @@ public:
 
 	void SetA2RTunings(double A2R_kp, Axis _eAxis);
 
-	void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis);
+	void SetTunings(PIDParams& params, Axis _eAxis);
 
 	// Used specifically to set the accumulated error to zero when Ki is changed to prevent sudden jumps in PID output
 	void SetErrSum(double val, Axis _eAxis);

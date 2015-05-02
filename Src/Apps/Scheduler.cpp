@@ -100,7 +100,7 @@ void Scheduler::RunTask(Task* task)
 	}
 }
 
-Task::Task (float frequency, const char* name): IntervalTicks((unsigned long)(1000/frequency))
+Task::Task (int frequency, const char* name): IntervalTicks((unsigned long)(1000.0/frequency))
 {
 	LastRunTime = 0;
 	TaskTime	= 0;

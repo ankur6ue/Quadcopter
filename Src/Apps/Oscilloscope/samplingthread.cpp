@@ -67,6 +67,7 @@ void SamplingThread::RegisterDataParsers(DataParser* pParser)
 	pParser->RegisterDataParser(new DataParserImplCommands(this));
 	//	pParser->RegisterDataParser(new DataParserImplBeacon(this));
 	pParser->RegisterAckParser(new DataParserImplAck(this));
+//	pParser->RegisterDataParser(new DataParserImplThrottle(this));
 }
 // Sets up the serial port on port 16, baud rate = 115200
 int SamplingThread::SetupSerialPort()
@@ -74,7 +75,7 @@ int SamplingThread::SetupSerialPort()
 	int success		= false;
 	bIsRecording	= false;
 	Sp = new Serial("\\\\.\\COM4",115200);    // adjust as needed
-//	Sp = new Serial("\\\\.\\COM20",115200);
+//	Sp = new Serial("\\\\.\\COM5",115200);
 //	Sp = new Serial("\\\\.\\COM23",115200);
 
 	if (Sp->IsConnected())
@@ -193,6 +194,18 @@ void SamplingThread::sample( double elapsed )
 				_speed = commandInstance->GetSpeed();
 				commandInstance->doUnlock();
 				pcommandDef = new CommandDef( "Speed", (float)_speed);
+
+				commandList.push_back(pcommandDef);
+			}
+
+			if (commandInstance->IsDirty(HOVERALT))
+			{
+				// We are only reading the shared variables, which is likely to be an atomic operation and locks are likely not required
+				// but better be safe than sorry. 
+				commandInstance->doLock();
+				double hoverAlt = commandInstance->GetHoverAltitude();
+				commandInstance->doUnlock();
+				pcommandDef = new CommandDef("HoverAlt", hoverAlt);
 
 				commandList.push_back(pcommandDef);
 			}
@@ -335,6 +348,34 @@ void SamplingThread::sample( double elapsed )
 					pcommandDef = new CommandDef("Yaw_Kd", kd);
 					commandList.push_back(pcommandDef);
 				}
+
+				if (commandInstance->IsPIDFlagDirty(Altitude_Kp))
+				{
+					commandInstance->doLock();
+					kp = commandInstance->GetAltitudeKp();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Altitude_Kp", kp);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Altitude_Ki))
+				{
+					commandInstance->doLock();
+					ki = commandInstance->GetAltitudeKi();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Altitude_Ki", ki);
+					commandList.push_back(pcommandDef);
+				}
+
+				if (commandInstance->IsPIDFlagDirty(Altitude_Kd))
+				{
+					commandInstance->doLock();
+					kd = commandInstance->GetAltitudeKd();
+					commandInstance->doUnlock();
+					pcommandDef = new CommandDef("Altitude_Kd", kd);
+					commandList.push_back(pcommandDef);
+				}
+
 				if (commandInstance->IsPIDFlagDirty(A2RPitch))
 				{
 					commandInstance->doLock();

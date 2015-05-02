@@ -22,11 +22,13 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "BLMotorControl.h"
 #include "BeaconListener.h"
 #include "ErrorsDef.h"
+#include "AltitudeCtrl.h"
 
 extern PIDController 	cPIDCntrl;
 extern MotorCtrl		cMotorCtrl;
 extern ExceptionMgr		cExceptionMgr;
 extern BeaconListener	cBeaconListener;
+extern AltitudeCtrl		cAltitudeCtrl;
 
 struct Command
 {
@@ -129,6 +131,7 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		} else
 		{
 			QuadState.Speed = cmd->Param;
+			QuadState.bThrottleOverride = true;
 		}
 	}
 
@@ -139,16 +142,22 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 		if (QuadState.bMotorToggle)
 		{
 			ESCPoweredTime = millis();
-			QuadState.Speed = 0;
+			QuadState.Speed = BaseSpeed;
+			QuadState.bThrottleOverride = false;
+			// Set yaw to wherever the quad is pointed at
+			double yawAttitude = QuadState.Yaw;
+			cPIDCntrl.SetHoverAttitude(yawAttitude, Axis_Yaw);
 
 			// cLog.EchoCommand(cLog.CreateCommand("ESC", 1));
 			// Turn on motor after a suitable delay
-		} else
+		}
+		else
 		{
 			cMotorCtrl.ResetMotors();
 			cExceptionMgr.ClearExceptionFlag();
 			QuadState.Reset();
 			cPIDCntrl.Reset();
+			cAltitudeCtrl.Reset();
 			cBeaconListener.Reset();
 			// Stop the exception manager when motors are off
 			cBeaconListener.Stop();
@@ -165,51 +174,79 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 
 	if (!strcmp(cmd->Name, "Kp"))
 	{
-		QuadState.Kp = cmd->Param;
+		QuadState.PitchParams.Kp = cmd->Param;
 		QuadState.bIsKpSet = true;
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Roll);
 	}
 
 	if (!strcmp(cmd->Name, "Ki"))
 	{
-		QuadState.Ki = cmd->Param;
+		QuadState.PitchParams.Ki = cmd->Param;
 		QuadState.bIsKiSet = true;
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Roll);
 	//	cPIDCntrl.SetErrSum(0.0, Axis_Pitch);
 	//	cPIDCntrl.SetErrSum(0.0, Axis_Roll);
 	}
 
 	if (!strcmp(cmd->Name, "Kd"))
 	{
-		QuadState.Kd = cmd->Param;
+		QuadState.PitchParams.Kd = cmd->Param;
 		QuadState.bIsKdSet = true;
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Pitch);
-		cPIDCntrl.SetTunings(QuadState.Kp, QuadState.Ki, QuadState.Kd, Axis_Roll);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Pitch);
+		cPIDCntrl.SetTunings(QuadState.PitchParams, Axis_Roll);
 
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Kp"))
 	{
-		QuadState.Yaw_Kp = cmd->Param;
+		QuadState.YawParams.Kp = cmd->Param;
 		QuadState.bIsYawKpSet = true;
-		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
+		cPIDCntrl.SetTunings(QuadState.YawParams, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Ki"))
 	{
-		QuadState.Yaw_Ki = cmd->Param;
+		QuadState.YawParams.Ki = cmd->Param;
 		QuadState.bIsYawKiSet = true;
-		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
+		cPIDCntrl.SetTunings(QuadState.YawParams, Axis_Yaw);
 		cPIDCntrl.SetErrSum(0.0, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "Yaw_Kd"))
 	{
-		QuadState.Yaw_Kd = cmd->Param;
+		QuadState.YawParams.Kd = cmd->Param;
 		QuadState.bIsYawKdSet = true;
-		cPIDCntrl.SetTunings(QuadState.Yaw_Kp, QuadState.Yaw_Ki, QuadState.Yaw_Kd, Axis_Yaw);
+		cPIDCntrl.SetTunings(QuadState.YawParams, Axis_Yaw);
+	}
+
+	if (!strcmp(cmd->Name, "Altitude_Kp"))
+	{
+		QuadState.AltParams.Kp = cmd->Param;
+	//	QuadState.bIsAltitudeKpSet = true;
+		cAltitudeCtrl.SetTunings(QuadState.AltParams);
+	}
+
+	if (!strcmp(cmd->Name, "Altitude_Ki"))
+	{
+		QuadState.AltParams.Ki = cmd->Param;
+	//	QuadState.bIsAltitudeKiSet = true;
+		cAltitudeCtrl.SetTunings(QuadState.AltParams);
+	}
+
+	if (!strcmp(cmd->Name, "HoverAlt"))
+	{
+		QuadState.HoverAltitude = cmd->Param;
+	//	QuadState.bIsAltitudeKiSet = true;
+		cAltitudeCtrl.SetHoverAltitude(QuadState.HoverAltitude);
+	}
+
+	if (!strcmp(cmd->Name, "Altitude_Kd"))
+	{
+		QuadState.AltParams.Kd = cmd->Param;
+	//	QuadState.bIsAltitudeKdSet = true;
+		cAltitudeCtrl.SetTunings(QuadState.AltParams);
 	}
 
 	if (!strcmp(cmd->Name, "A2R_PKp"))
@@ -264,8 +301,6 @@ void CommandCtrl::ProcessCommands(Command* cmd)
 	{
 		double attitude = cmd->Param;
 		cPIDCntrl.SetHoverAttitude(attitude, Axis_Roll);
-		double yawAttitude = QuadState.Yaw; // Set yaw to wherever the quad is oriented at.
-		cPIDCntrl.SetHoverAttitude(yawAttitude, Axis_Yaw);
 	}
 
 	if (!strcmp(cmd->Name, "RollDisp"))

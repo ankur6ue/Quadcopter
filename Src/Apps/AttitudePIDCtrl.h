@@ -30,7 +30,7 @@ public:
 
 	virtual void SetA2RTunings(double A2R_kp, Axis _eAxis);
 
-	virtual void SetTunings(double Kp, double Ki, double Kd, Axis _eAxis);
+	virtual void SetTunings(PIDParams& params, Axis _eAxis);
 
 	// Used specifically to set the accumulated error to zero when Ki is changed to prevent sudden jumps in PID output
 	virtual void SetErrSum(double val, Axis _eAxis);
